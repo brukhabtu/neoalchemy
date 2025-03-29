@@ -1,0 +1,27 @@
+[project]
+name = "neoalchemy"
+version = "0.1.0"
+authors = [
+  { name = "Bruk Habtu" },
+]
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "neo4j>=5.28.1",
+    "pydantic>=2.10.6",
+    "venusian>=3.1.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-cov",
+    "ruff>=0.11.2",
+    "click>=8.1.7",
+    "rich>=13.7.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
