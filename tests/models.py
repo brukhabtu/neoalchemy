@@ -6,7 +6,7 @@ This module defines all the test models used across different test files.
 
 from datetime import datetime
 
-from neoalchemy.models import Node, Relationship
+from neoalchemy.orm.models import Node, Relationship
 from pydantic import Field
 
 from neoalchemy import initialize
@@ -50,5 +50,5 @@ class PRODUCES(Relationship):
     since_year: int
 
 
-# Initialize the ORM to register field expressions
-initialize()
+# Remove automatic initialization to let tests handle it properly
+# initialize()

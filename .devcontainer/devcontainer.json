@@ -1,0 +1,31 @@
+{
+  "name": "Python 3.13 Development",
+  "dockerComposeFile": [
+        "docker-compose.yml"
+    ],
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+      "vscode": {
+          "settings": {
+              "python.defaultInterpreterPath": "/home/devuser/venv/bin/python",
+              "python.linting.enabled": true,
+              "python.linting.ruffEnabled": true,
+              "editor.formatOnSave": true,
+              "editor.defaultFormatter": "charliermarsh.ruff",
+              "terminal.integrated.defaultProfile.linux": "bash",
+              "python.terminal.activateEnvironment": true
+          },
+          "extensions": [
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "ms-azuretools.vscode-docker",
+            "charliermarsh.ruff",
+            "ms-vscode.wordcount",
+            "neo4j-extensions.neo4j-for-vscode"
+          ]
+      }
+  },
+  "forwardPorts": [],
+  "remoteUser": "devuser"
+}

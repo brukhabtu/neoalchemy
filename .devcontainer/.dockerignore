@@ -1,0 +1,23 @@
+# Exclude virtual environments
+.venv/
+venv/
+env/
+
+.git
+
+# Exclude Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Exclude other development files
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Exclude build artifacts
+dist/
+build/
+*.egg-info/

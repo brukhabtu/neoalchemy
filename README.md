@@ -13,6 +13,7 @@ NeoAlchemy provides a high-level, intuitive API for working with Neo4j graph dat
 - **Transaction-based**: All operations are performed within transaction contexts
 - **Type Hinting**: Comprehensive type annotations for better IDE support
 - **Expressive Query Language**: Using Python operators for complex query conditions
+- **Modular Cypher Compiler**: Flexible, composable architecture for generating Cypher queries
 
 ## Installation
 
@@ -26,7 +27,7 @@ pip install neoalchemy
 
 ```python
 from pydantic import Field
-from neoalchemy.models import Node, Relationship
+from neoalchemy.orm.models import Node, Relationship
 from neoalchemy import initialize
 
 # Always call initialize() to register field expressions
@@ -53,7 +54,7 @@ class WORKS_FOR(Relationship):
 
 ```python
 from neo4j import GraphDatabase
-from neoalchemy import Neo4jRepository
+from neoalchemy.orm import Neo4jRepository
 
 # Create a Neo4j driver
 driver = GraphDatabase.driver("neo4j://localhost:7687", auth=("neo4j", "password"))
@@ -93,6 +94,19 @@ with repo.transaction() as tx:
 
 ## Key Concepts
 
+### Architecture
+
+NeoAlchemy is built with a layered architecture inspired by SQLAlchemy:
+
+- **Core Layer**: Contains the low-level components for building and compiling Cypher queries
+  - Expression system
+  - Cypher compiler
+  - State management
+- **ORM Layer**: Provides high-level abstractions for working with Neo4j
+  - Model definitions
+  - Query building
+  - Repository pattern
+
 ### Models
 
 Models define the structure of your Neo4j nodes and relationships:
@@ -127,6 +141,34 @@ The expression system allows you to build complex query conditions using Python 
   - `.starts_with()`, `.ends_with()`
   - `.startswith()`, `.endswith()` (Pythonic aliases matching built-in methods)
 
+### Cypher Compiler
+
+The Cypher compiler system provides a modular, composable way to build and compile Cypher queries:
+
+```python
+from neoalchemy.core.cypher import (
+    CypherCompiler, CypherQuery, MatchClause, 
+    NodePattern, WhereClause, ReturnClause
+)
+
+# Create query components
+node = NodePattern('p', ['Person'])
+match = MatchClause(node)
+where = WhereClause([Person.age > 30])
+ret = ReturnClause(['p'])
+
+# Build a query
+query = CypherQuery(
+    match=match,
+    where=where,
+    return_clause=ret
+)
+
+# Compile to Cypher
+compiler = CypherCompiler()
+cypher_query, params = compiler.compile_query(query)
+```
+
 ## Advanced Features
 
 ### Custom Node Labels
@@ -155,6 +197,87 @@ long_names = tx.query(Person).where(Person.name.len() > 10).find()
 # Case-insensitive search
 case_insensitive = tx.query(Person).where(Person.name.lower() == "alice").find()
 ```
+
+### Graph Pattern Matching
+
+```python
+from neoalchemy.core.cypher import PathPattern, RelationshipPattern
+
+# Create patterns for the path
+person = NodePattern('p', ['Person'])
+rel = RelationshipPattern('r', ['KNOWS'], direction='->')
+friend = NodePattern('f', ['Person'])
+
+# Create a path pattern
+path = PathPattern([person, rel, friend])
+
+# Create a query with the path pattern
+query = CypherQuery(
+    match=MatchClause(path),
+    where=WhereClause([PropertyRef('p', 'name') == 'Alice']),
+    return_clause=ReturnClause(['f'])
+)
+```
+
+## Query Builder with Cypher Compiler Architecture
+
+The `QueryBuilder` uses a modern Cypher compiler architecture under the hood:
+
+```python
+from neoalchemy.orm import QueryBuilder
+
+with repo.transaction() as tx:
+    # Create a query builder for Person nodes
+    developers = tx.query(Person).where(
+        Person.age > 25,
+        "developer" in Person.tags
+    ).order_by(Person.name).find()
+```
+
+## Testing
+
+NeoAlchemy has a comprehensive test suite divided into unit tests and end-to-end tests.
+
+### Running Tests
+
+```bash
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run all tests
+python -m pytest
+
+# Run only unit tests
+python -m pytest tests/unit/
+
+# Run only e2e tests
+python -m pytest tests/e2e/
+
+# Run with coverage
+python -m pytest --cov=neoalchemy
+
+# Run tests matching a specific pattern
+python -m pytest -k "expressions"
+```
+
+### Test Structure
+
+The tests are organized into two main categories:
+
+1. **Unit Tests** (`tests/unit/`): Test individual components in isolation
+   - No database required
+   - Fast execution
+   - Focus on individual classes and functions
+
+2. **End-to-End Tests** (`tests/e2e/`): Test complete workflows
+   - Require a running Neo4j database
+   - Test integration with Neo4j
+   - Can be configured via environment variables:
+     ```bash
+     export NEO4J_URI=bolt://localhost:7687
+     export NEO4J_USER=neo4j
+     export NEO4J_PASSWORD=your_password
+     ```
 
 ## License
 
