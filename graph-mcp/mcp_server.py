@@ -14,6 +14,8 @@ from pydantic import BaseModel
 
 from mcp.server.fastmcp import FastMCP, Context
 from neo4j import GraphDatabase
+from neo4j.time import Date, DateTime
+from datetime import datetime
 
 # Import our custom models 
 # Using sourced models which require source tracking
@@ -713,150 +715,641 @@ def setup_database_constraints(ctx: Context) -> Dict[str, Any]:
         "message": "Database constraints and indexes set up successfully"
     }
 
-# NeoAlchemy code execution tool
 @mcp.tool()
-def run_query(
-    ctx: Context, 
-    code: str,
-    timeout_seconds: int = 10
+def create_person(
+    ctx: Context,
+    name: str,
+    email: str,
+    title: Optional[str] = None,
+    phone: Optional[str] = None,
+    hire_date: Optional[str] = None,  # ISO date string
+    department: str = "",
+    primary_location: str = "",
+    employee_id: Optional[str] = None,
+    source_ids: List[str] = []
 ) -> Dict[str, Any]:
-    """Run NeoAlchemy query to interact with the graph database.
-    
-    This tool executes NeoAlchemy code to create, read, update or delete nodes
-    and relationships in the graph database. Code is automatically wrapped in a
-    transaction, so you can directly use the 'tx' variable to execute queries.
-    
-    IMPORTANT: All nodes and relationships require at least one source.
-    Each entity must track where the data originated from.
-    
-    Examples:
-        # Find all Projects
-        run_query(code='''
-        projects = tx.query(Project).find()
-        result = projects  # Set the result to return
-        ''')
-        
-        # Create a new Person with a source
-        run_query(code='''
-        from neo4j.time import Date
-        
-        # First create a source
-        jira_source = tx.create_source(
-            name="PROJ-123", 
-            type=SourceType.JIRA,
-            description="Team member list",
-            url="https://company.atlassian.net/browse/PROJ-123"
-        )
-        
-        # Create person with required sources list
-        person = Person(
-            name="Alice", 
-            email="alice@example.com",
-            hire_date=Date(2023, 1, 15),
-            sources=[str(jira_source.id)]  # Required by SourcedNode
-        )
-        
-        # Create the person and add source relationship
-        created = tx.create(person)
-        tx.add_source(
-            created,
-            jira_source,
-            method="Jira Issue Fields", 
-            confidence=0.95,
-            primary=True
-        )
-        
-        result = created  # Set the result to return
-        ''')
-        
-        # Create a person with an LLM source (AI inference)
-        run_query(code='''
-        # Create person with LLM source in one operation
-        person = Person(
-            name="Bob Smith",
-            email="bob@example.com",
-            sources=[]  # Will be populated by create_with_llm_source
-        )
-        
-        # Convenience method to create entity with LLM source
-        created = tx.create_with_llm_source(
-            person,
-            model_name="claude-3-opus",
-            method="Email Content Analysis",
-            confidence=0.85,
-            context="Inferred from email thread analysis"
-        )
-        
-        result = created
-        ''')
-        
-        # Add a relationship with source tracking
-        run_query(code='''
-        # Find entities
-        alice = tx.query(Person).where(Person.name == "Alice").find_one()
-        project = tx.query(Project).where(Project.name == "API Project").find_one()
-        
-        if alice and project:
-            # Create a source for this relationship
-            slack_source = tx.create_source(
-                name="Team Discussion",
-                type=SourceType.SLACK,
-                description="Team planning discussion"
-            )
-            
-            # Create relationship with sources list
-            works_on_rel = WORKS_ON(
-                role="Developer",
-                allocation_percentage=75.0,
-                sources=[str(slack_source.id)]  # Required by SourcedRelationship
-            )
-            
-            # Create the relationship and track the source
-            rel = tx.relate(alice, works_on_rel, project)
-            
-            result = {"message": "Created relationship with source tracking"}
-        else:
-            result = {"error": "Entities not found"}
-        ''')
-        
-        # Use merge to create or update without duplicates
-        run_query(code='''
-        # Use merge to create or update a person by email
-        person = tx.merge(
-            Person,
-            name="John Smith",
-            email="john@example.com",  # Unique constraint field
-            title="Developer"
-        )
-        
-        result = person  # Will be a new or updated entity
-        ''')
+    """Create a new Person entity with source tracking.
     
     Args:
-        ctx: The MCP context object containing the request context
-        code: Python code using NeoAlchemy's fluent interface with 'tx' variable
-        timeout_seconds: Maximum execution time in seconds (default: 10)
+        ctx: MCP context
+        name: Person's full name
+        email: Email address (unique identifier)
+        title: Job title
+        phone: Contact phone number
+        hire_date: Date of hire (ISO format: YYYY-MM-DD)
+        department: Department name
+        primary_location: Primary office location
+        employee_id: Employee ID number
+        source_ids: List of source IDs to associate with this person
     
     Returns:
-        Dictionary containing execution results including:
-        - stdout: Any printed output
-        - result: The returned value from the code
-        - error: Any error message (if execution failed)
+        Dictionary containing the created person data
     """
-    # Get the Neo4j driver from the context
     driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
     
-    # Import the safe execution environment
-    from safe_run import run_neoalchemy_code
+    try:
+        with repo.transaction() as tx:
+            parsed_hire_date = None
+            if hire_date:
+                try:
+                    year, month, day = hire_date.split('-')
+                    parsed_hire_date = Date(int(year), int(month), int(day))
+                except ValueError:
+                    return {"error": f"Invalid hire_date format. Use YYYY-MM-DD, got: {hire_date}"}
+            
+            # Create the person
+            person = Person(
+                name=name,
+                email=email,
+                title=title,
+                phone=phone,
+                hire_date=parsed_hire_date,
+                department=department,
+                primary_location=primary_location,
+                employee_id=employee_id,
+                sources=source_ids
+            )
+            
+            created_person = tx.create(person)
+            
+            for source_id in source_ids:
+                try:
+                    source = tx.query(Source).where(Source.id == source_id).find_one()
+                    if source:
+                        tx.add_source(created_person, source)
+                except Exception:
+                    pass  # Continue if source not found
+            
+            return {
+                "success": True,
+                "person": created_person.model_dump(),
+                "id": str(created_person.id)
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def create_team(
+    ctx: Context,
+    name: str,
+    description: Optional[str] = None,
+    department: Optional[str] = None,
+    formation_date: Optional[str] = None,  # ISO date string
+    source_ids: List[str] = []
+) -> Dict[str, Any]:
+    """Create a new Team entity with source tracking.
     
-    # Execute the code safely
-    result = run_neoalchemy_code(
-        code=code,
-        driver=driver,
-        timeout_seconds=timeout_seconds
-    )
+    Args:
+        ctx: MCP context
+        name: Team name (unique identifier)
+        description: Team description
+        department: Department name
+        formation_date: Date when team was formed (ISO format: YYYY-MM-DD)
+        source_ids: List of source IDs to associate with this team
     
-    return result
+    Returns:
+        Dictionary containing the created team data
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            parsed_formation_date = None
+            if formation_date:
+                try:
+                    year, month, day = formation_date.split('-')
+                    parsed_formation_date = Date(int(year), int(month), int(day))
+                except ValueError:
+                    return {"error": f"Invalid formation_date format. Use YYYY-MM-DD, got: {formation_date}"}
+            
+            # Create the team
+            team = Team(
+                name=name,
+                description=description,
+                department=department,
+                formation_date=parsed_formation_date,
+                sources=source_ids
+            )
+            
+            created_team = tx.create(team)
+            
+            for source_id in source_ids:
+                try:
+                    source = tx.query(Source).where(Source.id == source_id).find_one()
+                    if source:
+                        tx.add_source(created_team, source)
+                except Exception:
+                    pass  # Continue if source not found
+            
+            return {
+                "success": True,
+                "team": created_team.model_dump(),
+                "id": str(created_team.id)
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def create_project(
+    ctx: Context,
+    name: str,
+    description: Optional[str] = None,
+    start_date: Optional[str] = None,  # ISO date string
+    end_date: Optional[str] = None,  # ISO date string
+    budget: Optional[float] = None,
+    status: str = "planning",
+    source_ids: List[str] = []
+) -> Dict[str, Any]:
+    """Create a new Project entity with source tracking.
+    
+    Args:
+        ctx: MCP context
+        name: Project name (unique identifier)
+        description: Project description
+        start_date: Project start date (ISO format: YYYY-MM-DD)
+        end_date: Project end date (ISO format: YYYY-MM-DD)
+        budget: Project budget
+        status: Current project status
+        source_ids: List of source IDs to associate with this project
+    
+    Returns:
+        Dictionary containing the created project data
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            parsed_start_date = None
+            parsed_end_date = None
+            
+            if start_date:
+                try:
+                    year, month, day = start_date.split('-')
+                    parsed_start_date = Date(int(year), int(month), int(day))
+                except ValueError:
+                    return {"error": f"Invalid start_date format. Use YYYY-MM-DD, got: {start_date}"}
+            
+            if end_date:
+                try:
+                    year, month, day = end_date.split('-')
+                    parsed_end_date = Date(int(year), int(month), int(day))
+                except ValueError:
+                    return {"error": f"Invalid end_date format. Use YYYY-MM-DD, got: {end_date}"}
+            
+            # Create the project
+            project = Project(
+                name=name,
+                description=description,
+                start_date=parsed_start_date,
+                end_date=parsed_end_date,
+                budget=budget,
+                status=status,
+                sources=source_ids
+            )
+            
+            created_project = tx.create(project)
+            
+            for source_id in source_ids:
+                try:
+                    source = tx.query(Source).where(Source.id == source_id).find_one()
+                    if source:
+                        tx.add_source(created_project, source)
+                except Exception:
+                    pass  # Continue if source not found
+            
+            return {
+                "success": True,
+                "project": created_project.model_dump(),
+                "id": str(created_project.id)
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def create_source(
+    ctx: Context,
+    name: str,
+    type: str,  # SourceType enum value
+    description: Optional[str] = None,
+    url: Optional[str] = None,
+    identifier: Optional[str] = None
+) -> Dict[str, Any]:
+    """Create a new Source entity for tracking data lineage.
+    
+    Args:
+        ctx: MCP context
+        name: Source name
+        type: Source type (jira, confluence, slack, teams, email, github, etc.)
+        description: Optional description
+        url: Optional URL to the source
+        identifier: Optional identifier (e.g., Jira issue key)
+    
+    Returns:
+        Dictionary containing the created source data
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            try:
+                source_type = SourceType(type.lower())
+            except ValueError:
+                valid_types = [t.value for t in SourceType]
+                return {"error": f"Invalid source type '{type}'. Valid types: {valid_types}"}
+            
+            # Create the source
+            source = Source(
+                name=name,
+                type=source_type,
+                description=description,
+                url=url,
+                identifier=identifier
+            )
+            
+            created_source = tx.create(source)
+            
+            return {
+                "success": True,
+                "source": created_source.model_dump(),
+                "id": str(created_source.id)
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def create_llm_source(
+    ctx: Context,
+    name: str,
+    model_name: str,
+    description: Optional[str] = None,
+    prompt_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Create a new LLM Source entity for tracking AI-generated data.
+    
+    Args:
+        ctx: MCP context
+        name: Source name
+        model_name: Name of the LLM model used (e.g., "claude-3-opus")
+        description: Optional description
+        prompt_id: Optional identifier for the prompt used
+    
+    Returns:
+        Dictionary containing the created LLM source data
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            # Create the LLM source
+            source = Source(
+                name=name,
+                type=SourceType.LLM,
+                description=description or f"Generated by {model_name}",
+                identifier=prompt_id,
+                url=None
+            )
+            
+            # This is a bit of a hack, but allows storing the model name
+            source.timestamp = DateTime.from_native(datetime.now())
+            
+            created_source = tx.create(source)
+            
+            return {
+                "success": True,
+                "source": created_source.model_dump(),
+                "id": str(created_source.id)
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def add_source_relationship(
+    ctx: Context,
+    entity_id: str,
+    source_id: str,
+    method: Optional[str] = None,
+    confidence: float = 1.0,
+    primary: bool = False,
+    context: Optional[str] = None
+) -> Dict[str, Any]:
+    """Add a source relationship to an existing entity.
+    
+    Args:
+        ctx: MCP context
+        entity_id: ID of the entity to link to source
+        source_id: ID of the source
+        method: Method used to extract/infer the data
+        confidence: Confidence level (0.0 to 1.0)
+        primary: Whether this is the primary source for the entity
+        context: Additional context about the relationship
+    
+    Returns:
+        Dictionary containing operation result
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            entity = None
+            for model_class in [Person, Team, Project]:
+                try:
+                    entity = tx.query(model_class).where(model_class.id == entity_id).find_one()
+                    if entity:
+                        break
+                except Exception:
+                    continue
+            
+            if not entity:
+                return {"error": f"Entity with ID {entity_id} not found"}
+            
+            source = tx.query(Source).where(Source.id == source_id).find_one()
+            if not source:
+                return {"error": f"Source with ID {source_id} not found"}
+            
+            # Add the source relationship
+            relationship = tx.add_source(
+                entity, source, method=method, confidence=confidence, 
+                primary=primary, context=context
+            )
+            
+            return {
+                "success": True,
+                "message": f"Added source relationship between entity {entity_id} and source {source_id}"
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def create_relationship(
+    ctx: Context,
+    from_entity_id: str,
+    to_entity_id: str,
+    relationship_type: str,
+    properties: Dict[str, Any] = {},
+    source_ids: List[str] = []
+) -> Dict[str, Any]:
+    """Create a relationship between two entities.
+    
+    Args:
+        ctx: MCP context
+        from_entity_id: ID of the source entity
+        to_entity_id: ID of the target entity
+        relationship_type: Type of relationship (WORKS_ON, BELONGS_TO, MANAGES, HAS_ACCOUNT)
+        properties: Additional properties for the relationship
+        source_ids: List of source IDs for the relationship
+    
+    Returns:
+        Dictionary containing the created relationship data
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            # Find the entities
+            from_entity = None
+            to_entity = None
+            
+            for model_class in [Person, Team, Project]:
+                if not from_entity:
+                    try:
+                        from_entity = tx.query(model_class).where(model_class.id == from_entity_id).find_one()
+                    except Exception:
+                        continue
+                if not to_entity:
+                    try:
+                        to_entity = tx.query(model_class).where(model_class.id == to_entity_id).find_one()
+                    except Exception:
+                        continue
+            
+            if not from_entity:
+                return {"error": f"From entity with ID {from_entity_id} not found"}
+            if not to_entity:
+                return {"error": f"To entity with ID {to_entity_id} not found"}
+            
+            # Create the appropriate relationship type
+            relationship = None
+            if relationship_type.upper() == "WORKS_ON":
+                relationship = WORKS_ON(
+                    role=properties.get("role", ""),
+                    joined_date=properties.get("joined_date"),
+                    allocation_percentage=properties.get("allocation_percentage", 100.0),
+                    sources=source_ids
+                )
+            elif relationship_type.upper() == "BELONGS_TO":
+                relationship = BELONGS_TO(
+                    role=properties.get("role"),
+                    joined_date=properties.get("joined_date"),
+                    sources=source_ids
+                )
+            elif relationship_type.upper() == "MANAGES":
+                relationship = MANAGES(
+                    since=properties.get("since"),
+                    sources=source_ids
+                )
+            elif relationship_type.upper() == "HAS_ACCOUNT":
+                relationship = HAS_ACCOUNT(
+                    is_primary=properties.get("is_primary", False),
+                    verified=properties.get("verified", False),
+                    sources=source_ids
+                )
+            else:
+                return {"error": f"Unsupported relationship type: {relationship_type}"}
+            
+            # Create the relationship
+            created_relationship = tx.relate(from_entity, relationship, to_entity)
+            
+            for source_id in source_ids:
+                try:
+                    source = tx.query(Source).where(Source.id == source_id).find_one()
+                    if source:
+                        tx.add_source(relationship, source)
+                except Exception:
+                    pass  # Continue if source not found
+            
+            return {
+                "success": True,
+                "relationship": {
+                    "type": relationship_type,
+                    "from": str(from_entity_id),
+                    "to": str(to_entity_id),
+                    "properties": properties
+                }
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def query_entities(
+    ctx: Context,
+    entity_type: str,
+    filters: Dict[str, Any] = {},
+    limit: int = 100
+) -> Dict[str, Any]:
+    """Query entities of a specific type with optional filters.
+    
+    Args:
+        ctx: MCP context
+        entity_type: Type of entity to query (Person, Team, Project)
+        filters: Dictionary of field filters (e.g., {"name": "Alice", "department": "Engineering"})
+        limit: Maximum number of results to return
+    
+    Returns:
+        Dictionary containing the query results
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            # Get the model class
+            model_class = None
+            if entity_type.lower() == "person":
+                model_class = Person
+            elif entity_type.lower() == "team":
+                model_class = Team
+            elif entity_type.lower() == "project":
+                model_class = Project
+            else:
+                return {"error": f"Unsupported entity type: {entity_type}"}
+            
+            query = tx.query(model_class)
+            
+            for field, value in filters.items():
+                if hasattr(model_class, field):
+                    field_expr = getattr(model_class, field)
+                    query = query.where(field_expr == value)
+            
+            results = query.limit(limit).find()
+            
+            serialized_results = []
+            for result in results:
+                serialized_results.append(result.model_dump())
+            
+            return {
+                "success": True,
+                "entity_type": entity_type,
+                "count": len(serialized_results),
+                "results": serialized_results
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def get_entity_sources(
+    ctx: Context,
+    entity_id: str
+) -> Dict[str, Any]:
+    """Get all sources associated with an entity.
+    
+    Args:
+        ctx: MCP context
+        entity_id: ID of the entity
+    
+    Returns:
+        Dictionary containing the entity's sources
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            entity = None
+            for model_class in [Person, Team, Project]:
+                try:
+                    entity = tx.query(model_class).where(model_class.id == entity_id).find_one()
+                    if entity:
+                        break
+                except Exception:
+                    continue
+            
+            if not entity:
+                return {"error": f"Entity with ID {entity_id} not found"}
+            
+            # Get sources for this entity
+            sources = tx.get_sources(entity)
+            
+            serialized_sources = []
+            for source in sources:
+                serialized_sources.append(source.model_dump())
+            
+            return {
+                "success": True,
+                "entity_id": entity_id,
+                "sources": serialized_sources
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
+
+@mcp.tool()
+def merge_entity(
+    ctx: Context,
+    entity_type: str,
+    **properties
+) -> Dict[str, Any]:
+    """Create or update an entity based on unique constraints.
+    
+    This tool uses the merge operation to create a new entity if it doesn't exist,
+    or update an existing entity if one with the same unique constraint value exists.
+    
+    Args:
+        ctx: MCP context
+        entity_type: Type of entity to merge (Person, Team, Project)
+        **properties: Entity properties as keyword arguments
+    
+    Returns:
+        Dictionary containing the merged entity data
+    """
+    driver = ctx.request_context.lifespan_context.driver
+    repo = ctx.request_context.lifespan_context.repo
+    
+    try:
+        with repo.transaction() as tx:
+            # Get the model class
+            model_class = None
+            if entity_type.lower() == "person":
+                model_class = Person
+            elif entity_type.lower() == "team":
+                model_class = Team
+            elif entity_type.lower() == "project":
+                model_class = Project
+            else:
+                return {"error": f"Unsupported entity type: {entity_type}"}
+            
+            # Handle date fields
+            for date_field in ["hire_date", "formation_date", "start_date", "end_date"]:
+                if date_field in properties and isinstance(properties[date_field], str):
+                    try:
+                        year, month, day = properties[date_field].split('-')
+                        properties[date_field] = Date(int(year), int(month), int(day))
+                    except (ValueError, AttributeError):
+                        return {"error": f"Invalid {date_field} format. Use YYYY-MM-DD"}
+            
+            merged_entity = tx.merge(model_class, **properties)
+            
+            return {
+                "success": True,
+                "entity": merged_entity.model_dump(),
+                "id": str(merged_entity.id)
+            }
+            
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     mcp.run()
