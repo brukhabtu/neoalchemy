@@ -2,6 +2,7 @@
 """
 NeoAlchemy MCP Server - Provides API tools for working with graph data models.
 """
+
 from typing import Any, Dict, List, Optional, Type, Union, AsyncIterator, get_type_hints, TypeVar
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -15,13 +16,27 @@ from pydantic import BaseModel
 from mcp.server.fastmcp import FastMCP, Context
 from neo4j import GraphDatabase
 
-# Import our custom models 
+# Import our custom models
 # Using sourced models which require source tracking
 from sourced_models import (
-    Person, Project, Team, Account, 
-    ConfluenceAttachment, ConfluenceComment, ConfluenceEntity, ConfluencePage, ConfluenceSpace,
-    WORKS_ON, BELONGS_TO, MANAGES, HAS_ACCOUNT, AUTHORED, MODIFIED, PARENT_OF, 
-    HAS_ATTACHMENT, MENTIONED_IN
+    Person,
+    Project,
+    Team,
+    Account,
+    ConfluenceAttachment,
+    ConfluenceComment,
+    ConfluenceEntity,
+    ConfluencePage,
+    ConfluenceSpace,
+    WORKS_ON,
+    BELONGS_TO,
+    MANAGES,
+    HAS_ACCOUNT,
+    AUTHORED,
+    MODIFIED,
+    PARENT_OF,
+    HAS_ATTACHMENT,
+    MENTIONED_IN,
 )
 
 # Import source tracking functionality
@@ -34,8 +49,8 @@ from neoalchemy.orm.repository import Neo4jRepository
 # Field expressions and sources will be initialized in app_lifespan
 
 # Define type variables for better type checking
-NodeModel = TypeVar('NodeModel', bound=Node)
-RelationshipModel = TypeVar('RelationshipModel', bound=Relationship)
+NodeModel = TypeVar("NodeModel", bound=Node)
+RelationshipModel = TypeVar("RelationshipModel", bound=Relationship)
 
 # Type alias for model name strings (for documentation purposes)
 ModelName = str
@@ -43,10 +58,12 @@ ModelName = str
 # Create a named server with dependencies
 mcp = FastMCP("NeoAlchemy", dependencies=["neo4j"])
 
+
 @dataclass
 class AppContext:
     driver: GraphDatabase.driver
     repo: Neo4jRepository
+
 
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
@@ -54,21 +71,22 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     # Initialize on startup
     driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "your_secure_password"))
     repo = Neo4jRepository(driver)
-    
+
     # Initialize field expressions for all models
     initialize()
-    
+
     # Initialize source mechanism for tracking data lineage
     initialize_sources()
-    
+
     # Setup constraints for registered models
     setup_constraints(driver)
-    
+
     try:
         yield AppContext(driver=driver, repo=repo)
     finally:
         # Cleanup on shutdown
         driver.close()
+
 
 # Pass lifespan to server
 mcp = FastMCP("NeoAlchemy", dependencies=["neo4j", "neoalchemy"], lifespan=app_lifespan)
@@ -79,79 +97,78 @@ NODE_MODELS = Node.__registry__
 RELATIONSHIP_MODELS = Relationship.__registry__
 
 # Combined model map for all models
-MODEL_MAP: Dict[str, Union[Type[Node], Type[Relationship]]] = {
-    **NODE_MODELS,
-    **RELATIONSHIP_MODELS
-}
+MODEL_MAP: Dict[str, Union[Type[Node], Type[Relationship]]] = {**NODE_MODELS, **RELATIONSHIP_MODELS}
+
 
 def generate_model_docs(model_class: Type) -> Dict[str, Any]:
     """Generate documentation for a model class.
-    
+
     Args:
         model_class: The model class to generate documentation for
-        
+
     Returns:
         Dictionary containing the model documentation
     """
     # Determine if this is a Node or Relationship model
     model_type = "Node" if issubclass(model_class, Node) else "Relationship"
-    
+
     # Get model annotations
     annotations = get_type_hints(model_class)
-    
+
     # Extract field information
     fields = {}
     for field_name, field_type in annotations.items():
         # Skip private fields
         if field_name.startswith("_"):
             continue
-            
+
         # Handle Optional types
         origin = getattr(field_type, "__origin__", None)
         args = getattr(field_type, "__args__", [])
-        
+
         is_optional = origin is Union and type(None) in args
         if is_optional:
             # Get the actual type (first non-None type)
             actual_types = [arg for arg in args if arg is not type(None)]
             if actual_types:
                 field_type = actual_types[0]
-        
+
         # Get type name
         if hasattr(field_type, "__name__"):
             type_name = field_type.__name__
         else:
             type_name = str(field_type).replace("typing.", "")
-            
+
         # Get default value
         default_value = None
         if hasattr(model_class, field_name) and not field_name.startswith("__"):
             default_value = getattr(model_class, field_name)
-            
+
         field_info = {
             "type": type_name,
             "required": not is_optional,
         }
-        
+
         if default_value is not None:
             field_info["default"] = str(default_value)
-            
+
         fields[field_name] = field_info
-    
+
     # Build model docs
     model_docs = {
         "type": model_type,
         "description": model_class.__doc__ or f"{model_class.__name__} model",
-        "fields": fields
+        "fields": fields,
     }
-    
+
     # Add Neo4j specific information
     if model_type == "Node":
         model_docs["label"] = getattr(model_class, "__label__", model_class.__name__)
     else:
         model_docs["rel_type"] = getattr(model_class, "__type__", model_class.__name__.upper())
-        
+
     return model_docs
+
 
 # Generate documentation for all models
 MODEL_DOCS = {name: generate_model_docs(model_class) for name, model_class in MODEL_MAP.items()}
@@ -161,17 +178,15 @@ MODEL_FIELDS = {}
 for name, docs in MODEL_DOCS.items():
     required_fields = []
     optional_fields = []
-    
+
     for field_name, field_info in docs["fields"].items():
         if field_info.get("required", False):
             required_fields.append(field_name)
         else:
             optional_fields.append(field_name)
-    
-    MODEL_FIELDS[name] = {
-        "required": required_fields,
-        "optional": optional_fields
-    }
+
+    MODEL_FIELDS[name] = {"required": required_fields, "optional": optional_fields}
+
 
 # Define server resources and endpoints
 @mcp.resource("schema://neoalchemy")
@@ -182,10 +197,9 @@ def get_schema() -> Dict[str, Any]:
         "version": "1.0.0",
         "node_models": {name: MODEL_DOCS[name] for name in NODE_MODELS},
         "relationship_models": {name: MODEL_DOCS[name] for name in RELATIONSHIP_MODELS},
-        "documentation": {
-            "fluent_interface": "docs://neoalchemy/fluent-interface"
-        }
+        "documentation": {"fluent_interface": "docs://neoalchemy/fluent-interface"},
     }
+
 
 @mcp.resource("docs://neoalchemy/fluent-interface")
 def get_fluent_interface_docs() -> Dict[str, Any]:
@@ -275,7 +289,7 @@ result = {
     "found_devs": len(devs),
     "sources": len(alice_sources)
 }
-"""
+""",
             },
             {
                 "title": "Query Options",
@@ -327,7 +341,7 @@ result = {
     "recent_hires": len(recent_hires),
     "ordered_people": len(ordered_people)
 }
-"""
+""",
             },
             {
                 "title": "Working with Relationships and Sources",
@@ -430,7 +444,7 @@ if alice and team and project:
 else:
     print("One or more nodes not found, please create them first")
     result = {"error": "Nodes not found"}
-"""
+""",
             },
             {
                 "title": "Working with Constraints and Merge",
@@ -513,7 +527,7 @@ except Exception as e:
         "error": str(e),
         "message": "See explanation in error message"
     }
-"""
+""",
             },
             {
                 "title": "Complete Graph Example",
@@ -584,7 +598,7 @@ result = {
     "created_nodes": {k: v.model_dump() for k, v in created_nodes.items()},
     "message": "Complete graph structure created successfully"
 }
-"""
+""",
             },
             {
                 "title": "Searching All Nodes of a Specific Type",
@@ -659,116 +673,108 @@ result = {
     },
     "person_details": person_details
 }
-"""
-            }
-        ]
+""",
+            },
+        ],
     }
+
 
 @mcp.tool()
 def setup_database_constraints(ctx: Context) -> Dict[str, Any]:
     """Set up all constraints and indexes for registered models.
-    
+
     This tool sets up database constraints based on model field definitions.
     It creates unique constraints and indexes as defined in the models.
-    
+
     Args:
         ctx: The MCP context object
-        
+
     Returns:
         Information about constraints created
     """
     driver = ctx.request_context.lifespan_context.driver
-    
+
     # Initialize if needed
     initialize()
     initialize_sources()
-    
+
     # Get all models and their constraints
     node_constraints = {}
     for name, model_class in Node.__registry__.items():
         constraints = model_class.get_constraints()
         indexes = model_class.get_indexes()
         if constraints or indexes:
-            node_constraints[name] = {
-                "constraints": constraints,
-                "indexes": indexes
-            }
-            
+            node_constraints[name] = {"constraints": constraints, "indexes": indexes}
+
     relationship_constraints = {}
     for name, model_class in Relationship.__registry__.items():
         constraints = model_class.get_constraints()
         indexes = model_class.get_indexes()
         if constraints or indexes:
-            relationship_constraints[name] = {
-                "constraints": constraints,
-                "indexes": indexes
-            }
-    
+            relationship_constraints[name] = {"constraints": constraints, "indexes": indexes}
+
     # Set up the constraints
     setup_constraints(driver, drop_existing=True)
-    
+
     return {
         "nodes": node_constraints,
         "relationships": relationship_constraints,
-        "message": "Database constraints and indexes set up successfully"
+        "message": "Database constraints and indexes set up successfully",
     }
+
 
 # NeoAlchemy code execution tool
 @mcp.tool()
-def run_query(
-    ctx: Context, 
-    code: str,
-    timeout_seconds: int = 10
-) -> Dict[str, Any]:
+def run_query(ctx: Context, code: str, timeout_seconds: int = 10) -> Dict[str, Any]:
     """Run NeoAlchemy query to interact with the graph database.
-    
+
     This tool executes NeoAlchemy code to create, read, update or delete nodes
     and relationships in the graph database. Code is automatically wrapped in a
     transaction, so you can directly use the 'tx' variable to execute queries.
-    
+
     IMPORTANT: All nodes and relationships require at least one source.
     Each entity must track where the data originated from.
-    
+
     Examples:
         # Find all Projects
         run_query(code='''
         projects = tx.query(Project).find()
         result = projects  # Set the result to return
         ''')
-        
+
         # Create a new Person with a source
         run_query(code='''
         from neo4j.time import Date
-        
+
         # First create a source
         jira_source = tx.create_source(
-            name="PROJ-123", 
+            name="PROJ-123",
             type=SourceType.JIRA,
             description="Team member list",
             url="https://company.atlassian.net/browse/PROJ-123"
         )
-        
+
         # Create person with required sources list
         person = Person(
-            name="Alice", 
+            name="Alice",
             email="alice@example.com",
             hire_date=Date(2023, 1, 15),
             sources=[str(jira_source.id)]  # Required by SourcedNode
         )
-        
+
         # Create the person and add source relationship
         created = tx.create(person)
         tx.add_source(
             created,
             jira_source,
-            method="Jira Issue Fields", 
+            method="Jira Issue Fields",
             confidence=0.95,
             primary=True
         )
-        
+
         result = created  # Set the result to return
         ''')
-        
+
         # Create a person with an LLM source (AI inference)
         run_query(code='''
         # Create person with LLM source in one operation
@@ -777,7 +783,7 @@ def run_query(
             email="bob@example.com",
             sources=[]  # Will be populated by create_with_llm_source
         )
-        
+
         # Convenience method to create entity with LLM source
         created = tx.create_with_llm_source(
             person,
@@ -786,16 +792,16 @@ def run_query(
             confidence=0.85,
             context="Inferred from email thread analysis"
         )
-        
+
         result = created
         ''')
-        
+
         # Add a relationship with source tracking
         run_query(code='''
         # Find entities
         alice = tx.query(Person).where(Person.name == "Alice").find_one()
         project = tx.query(Project).where(Project.name == "API Project").find_one()
-        
+
         if alice and project:
             # Create a source for this relationship
             slack_source = tx.create_source(
@@ -803,22 +809,22 @@ def run_query(
                 type=SourceType.SLACK,
                 description="Team planning discussion"
             )
-            
+
             # Create relationship with sources list
             works_on_rel = WORKS_ON(
                 role="Developer",
                 allocation_percentage=75.0,
                 sources=[str(slack_source.id)]  # Required by SourcedRelationship
             )
-            
+
             # Create the relationship and track the source
             rel = tx.relate(alice, works_on_rel, project)
-            
+
             result = {"message": "Created relationship with source tracking"}
         else:
             result = {"error": "Entities not found"}
         ''')
-        
+
         # Use merge to create or update without duplicates
         run_query(code='''
         # Use merge to create or update a person by email
@@ -828,15 +834,15 @@ def run_query(
             email="john@example.com",  # Unique constraint field
             title="Developer"
         )
-        
+
         result = person  # Will be a new or updated entity
         ''')
-    
+
     Args:
         ctx: The MCP context object containing the request context
         code: Python code using NeoAlchemy's fluent interface with 'tx' variable
         timeout_seconds: Maximum execution time in seconds (default: 10)
-    
+
     Returns:
         Dictionary containing execution results including:
         - stdout: Any printed output
@@ -845,18 +851,15 @@ def run_query(
     """
     # Get the Neo4j driver from the context
     driver = ctx.request_context.lifespan_context.driver
-    
+
     # Import the safe execution environment
     from safe_run import run_neoalchemy_code
-    
+
     # Execute the code safely
-    result = run_neoalchemy_code(
-        code=code,
-        driver=driver,
-        timeout_seconds=timeout_seconds
-    )
-    
+    result = run_neoalchemy_code(code=code, driver=driver, timeout_seconds=timeout_seconds)
+
     return result
+
 
 if __name__ == "__main__":
     mcp.run()

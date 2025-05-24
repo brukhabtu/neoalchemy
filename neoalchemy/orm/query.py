@@ -28,7 +28,7 @@ T = TypeVar("T")
 class QueryBuilder(Generic[M]):
     """A fluent interface for building Neo4j queries using the CypherCompiler."""
 
-    def __init__(self, repo: Any, model_class: Type[M], entity_var: str = 'e'):
+    def __init__(self, repo: Any, model_class: Type[M], entity_var: str = "e"):
         """Initialize a query builder.
 
         Args:
@@ -44,9 +44,10 @@ class QueryBuilder(Generic[M]):
         self.order_direction = "ASC"
         self.limit_value: Optional[int] = None
         self.entity_var = entity_var
-        
+
         # Configure the expression adapter to use our entity variable
         from neoalchemy.core.expressions import Expr, ExpressionAdapter
+
         Expr.set_adapter(ExpressionAdapter(entity_var=self.entity_var))
 
     def where(self, *conditions, **kwargs) -> "QueryBuilder[M]":
@@ -65,7 +66,7 @@ class QueryBuilder(Generic[M]):
             Self for method chaining
         """
         from neoalchemy.core.state import expression_state
-        
+
         # Special case for in-operator expressions (True with a captured expression)
         if len(conditions) == 1 and conditions[0] is True:
             # We need to check if there's a captured expression from an in-operator
@@ -76,9 +77,9 @@ class QueryBuilder(Generic[M]):
                 expression_state.last_expr = None
                 return self
             # If we get True but there's no stored expression, treat it as a condition
-            self.conditions.append(OperatorExpr('active', '=', True))
+            self.conditions.append(OperatorExpr("active", "=", True))
             return self
-        
+
         # Handle regular expressions
         for condition in conditions:
             if isinstance(condition, Expr):
@@ -122,7 +123,7 @@ class QueryBuilder(Generic[M]):
                     self.conditions.append(OperatorExpr(field_or_expr.name, "CONTAINS", value))
             else:
                 raise ValueError("Value must be provided when using FieldExpr")
-                
+
         # Handle old-style tuple expression
         elif isinstance(field_or_expr, tuple) and len(field_or_expr) == 3:
             field, _, search_value = field_or_expr
@@ -132,7 +133,7 @@ class QueryBuilder(Generic[M]):
                 self.conditions.append(OperatorExpr(field, "ANY IN", search_value))
             else:
                 self.conditions.append(OperatorExpr(field, "CONTAINS", search_value))
-                
+
         # Handle string field name
         elif isinstance(field_or_expr, str):
             if value is not None:
@@ -189,52 +190,52 @@ class QueryBuilder(Generic[M]):
         """
         # Reset any lingering expression state
         from neoalchemy.core.state import reset_expression_state
+
         reset_expression_state()
-            
+
         # Create the basic node pattern
         node_pattern = NodePattern(self.entity_var, [self.node_label])
-        
+
         # Create the MATCH clause
         match_clause = MatchClause(node_pattern)
-        
+
         # Create the WHERE clause if we have conditions
         # Pass Expr objects directly - WhereClause will handle the conversion
         where_clause = WhereClause(self.conditions) if self.conditions else None
-        
+
         # Create the RETURN clause
         return_clause = ReturnClause([self.entity_var])
-        
+
         # Create the ORDER BY clause if specified
         order_by = None
         if self.order_by_field:
             # Create a property reference using the adapter pattern for consistency
             from neoalchemy.core.expressions import FieldExpr
+
             field_expr = FieldExpr(self.order_by_field)
             property_ref = field_expr.to_cypher_element()
-            
-            order_by = OrderByClause([
-                (property_ref, self.order_direction == 'DESC')
-            ])
-        
+
+            order_by = OrderByClause([(property_ref, self.order_direction == "DESC")])
+
         # Create the LIMIT clause if specified
         limit = LimitClause(self.limit_value) if self.limit_value is not None else None
-        
+
         # Create the complete query
         query = CypherQuery(
             match=match_clause,
             where=where_clause,
             return_clause=return_clause,
             order_by=order_by,
-            limit=limit
+            limit=limit,
         )
-        
+
         return query
 
     def find(self) -> List[M]:
         """Execute the query and return results.
-        
+
         This method must be called within a transaction context.
-        
+
         Returns:
             List of model instances matching the query
         """
@@ -242,22 +243,22 @@ class QueryBuilder(Generic[M]):
         query = self._build_query()
         parameters: Dict[str, Any] = {}
         cypher_query, _ = query.to_cypher(parameters)
-        
+
         # Get the current transaction
-        tx = getattr(self.repo, '_current_tx', None)
+        tx = getattr(self.repo, "_current_tx", None)
         if tx is None:
             raise RuntimeError("Query must be executed within a transaction context")
-            
+
         # Execute the query
         result = tx._tx.run(cypher_query, parameters)
         data_list = self.repo._process_multiple_nodes(result)
-        
+
         # Convert results to model instances
         return [self.model_class(**data) for data in data_list]
 
     def find_one(self) -> Optional[M]:
         """Execute the query and return a single result.
-        
+
         This method must be called within a transaction context.
 
         Returns:
@@ -265,63 +266,61 @@ class QueryBuilder(Generic[M]):
         """
         # Limit to one result
         self.limit(1)
-        
+
         # Build and execute the query
         query = self._build_query()
         parameters: Dict[str, Any] = {}
         cypher_query, _ = query.to_cypher(parameters)
-        
+
         # Get the current transaction
-        tx = getattr(self.repo, '_current_tx', None)
+        tx = getattr(self.repo, "_current_tx", None)
         if tx is None:
             raise RuntimeError("Query must be executed within a transaction context")
-            
+
         # Execute the query
         result = tx._tx.run(cypher_query, parameters)
         data = self.repo._process_single_node(result)
-        
+
         # Convert result to model instance
         if data is None:
             return None
         return self.model_class(**data)
-    
+
     def count(self) -> int:
         """Count the number of matching records without fetching full objects.
-        
+
         This method must be called within a transaction context.
-        
+
         Returns:
             Number of matching records
         """
         # Create a new query for counting
         node_pattern = NodePattern(self.entity_var, [self.node_label])
         match_clause = MatchClause(node_pattern)
-        
+
         # Pass Expr objects directly - WhereClause will handle the conversion
         where_clause = WhereClause(self.conditions) if self.conditions else None
-        
+
         # Use a COUNT function in the return clause
-        return_clause = ReturnClause([(f'count({self.entity_var})', 'count')])
-        
+        return_clause = ReturnClause([(f"count({self.entity_var})", "count")])
+
         count_query = CypherQuery(
-            match=match_clause,
-            where=where_clause,
-            return_clause=return_clause
+            match=match_clause, where=where_clause, return_clause=return_clause
         )
-        
+
         # Convert the query to Cypher using to_cypher
         parameters: Dict[str, Any] = {}
         cypher_query, _ = count_query.to_cypher(parameters)
-        
+
         # Get the current transaction
-        tx = getattr(self.repo, '_current_tx', None)
+        tx = getattr(self.repo, "_current_tx", None)
         if tx is None:
             raise RuntimeError("Query must be executed within a transaction context")
-            
+
         # Execute the query
         result = tx._tx.run(cypher_query, parameters)
         record = result.single()
-        
+
         # Return the count
         if record:
             return record["count"]

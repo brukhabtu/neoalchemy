@@ -7,9 +7,13 @@ foundation of the Cypher query system.
 
 from neoalchemy.core.cypher.elements.element import CypherElement
 from neoalchemy.core.cypher.core.keywords import (
-    KeywordEnum, ClauseKeyword, OperatorKeyword,
-    LogicalKeyword, DirectionKeyword, FunctionKeyword,
-    CypherKeywords
+    KeywordEnum,
+    ClauseKeyword,
+    OperatorKeyword,
+    LogicalKeyword,
+    DirectionKeyword,
+    FunctionKeyword,
+    CypherKeywords,
 )
 
 __all__ = [
@@ -20,5 +24,5 @@ __all__ = [
     "LogicalKeyword",
     "DirectionKeyword",
     "FunctionKeyword",
-    "CypherKeywords"
+    "CypherKeywords",
 ]

@@ -14,6 +14,7 @@ from neoalchemy import initialize
 
 class Person(Node):
     """Person test model."""
+
     name: str
     age: int
     email: str = ""
@@ -24,6 +25,7 @@ class Person(Node):
 
 class Company(Node):
     """Company test model."""
+
     name: str
     founded: int
     industry: str = ""
@@ -33,6 +35,7 @@ class Company(Node):
 
 class Product(Node):
     """Product test model."""
+
     name: str
     price: float
     category: str
@@ -41,12 +44,14 @@ class Product(Node):
 
 class WORKS_FOR(Relationship):
     """Employment relationship model."""
+
     role: str
     since: datetime = Field(default_factory=datetime.now)
 
 
 class PRODUCES(Relationship):
     """Production relationship model."""
+
     since_year: int
 
 

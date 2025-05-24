@@ -27,7 +27,7 @@ NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "your_secure_password")
 @pytest.fixture
 def driver():
     """Create a Neo4j driver instance.
-    
+
     This fixture is primarily used by e2e tests but available to all tests.
     """
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
@@ -46,7 +46,7 @@ def driver():
 @pytest.fixture
 def repo(driver):
     """Create a repository instance.
-    
+
     This fixture is used by both e2e and some unit tests that need a repository.
     """
     return Neo4jRepository(driver)
@@ -55,7 +55,7 @@ def repo(driver):
 @pytest.fixture
 def clean_db(driver):
     """Clean the database before and after tests.
-    
+
     This fixture ensures tests start with a clean database and clean up after themselves.
     """
     try:
@@ -63,9 +63,9 @@ def clean_db(driver):
             session.run("MATCH (n) DETACH DELETE n")
     except Exception:
         pytest.skip("Skipping test that requires database cleanup")
-    
+
     yield
-    
+
     try:
         with driver.session() as session:
             session.run("MATCH (n) DETACH DELETE n")

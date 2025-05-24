@@ -13,11 +13,11 @@ from neoalchemy.orm.query import QueryBuilder
 # Define what's exported when someone does "from neoalchemy.orm import *"
 __all__ = [
     # Models
-    'Neo4jModel', 'Node', 'Relationship',
-    
+    "Neo4jModel",
+    "Node",
+    "Relationship",
     # Repository
-    'Neo4jRepository',
-    
+    "Neo4jRepository",
     # Query building
-    'QueryBuilder'
+    "QueryBuilder",
 ]

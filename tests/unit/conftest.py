@@ -23,13 +23,13 @@ def mock_driver():
     session = MagicMock()
     tx = MagicMock()
     result = MagicMock()
-    
+
     # Configure the mocks
     driver.session.return_value = session
     session.begin_transaction.return_value = tx
     tx.run.return_value = result
     result.single.return_value = {"count": 1}
-    
+
     # Set up a way to convert property params to record data
     def mock_run(query, params=None):
         if params is None:
@@ -40,9 +40,9 @@ def mock_driver():
         result.data.return_value = [param_value]
         result.single.return_value = param_value
         return result
-    
+
     tx.run.side_effect = mock_run
-    
+
     return driver
 
 
@@ -58,12 +58,12 @@ def mock_session():
     session = MagicMock()
     tx = MagicMock()
     result = MagicMock()
-    
+
     # Configure the mocks
     session.begin_transaction.return_value = tx
     tx.run.return_value = result
     result.data.return_value = [{"name": "Test", "age": 30}]
-    
+
     return session
 
 
@@ -71,19 +71,19 @@ def mock_session():
 def isolated_registry():
     """Provide isolation for model registries during testing."""
     from neoalchemy.orm.models import Node, Relationship, Neo4jModel
-    
+
     # Save original registries
     original_node_registry = Node.__registry__.copy()
     original_rel_registry = Relationship.__registry__.copy()
     original_model_registry = Neo4jModel.__registry__.copy()
-    
+
     # Replace with empty registries
     Node.__registry__ = {}
     Relationship.__registry__ = {}
     Neo4jModel.__registry__ = {}
-    
+
     yield
-    
+
     # Restore original registries
     Node.__registry__ = original_node_registry
     Relationship.__registry__ = original_rel_registry
