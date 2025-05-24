@@ -1,31 +1,73 @@
 {
-  "name": "Python 3.13 Development",
-  "dockerComposeFile": [
-        "docker-compose.yml"
-    ],
+  "name": "NeoAlchemy Development",
+  "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
+  
+  "postCreateCommand": ".devcontainer/postCreateCommand.sh",
+  
   "customizations": {
-      "vscode": {
-          "settings": {
-              "python.defaultInterpreterPath": "/home/devuser/venv/bin/python",
-              "python.linting.enabled": true,
-              "python.linting.ruffEnabled": true,
-              "editor.formatOnSave": true,
-              "editor.defaultFormatter": "charliermarsh.ruff",
-              "terminal.integrated.defaultProfile.linux": "bash",
-              "python.terminal.activateEnvironment": true
-          },
-          "extensions": [
-            "ms-python.python",
-            "ms-python.vscode-pylance",
-            "ms-azuretools.vscode-docker",
-            "charliermarsh.ruff",
-            "ms-vscode.wordcount",
-            "neo4j-extensions.neo4j-for-vscode"
-          ]
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.mypy-type-checker", 
+        "charliermarsh.ruff",
+        "ms-python.black-formatter",
+        "ms-vscode.test-adapter-converter",
+        "ms-python.pytest",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-json"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/app/.venv/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests/"],
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "python.formatting.provider": "ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        },
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/*.pyc": true,
+          "**/.pytest_cache": true,
+          "**/node_modules": true,
+          "**/.git": false
+        }
       }
+    }
   },
-  "forwardPorts": [],
-  "remoteUser": "devuser"
+
+  "forwardPorts": [7474, 7687, 8080],
+  "portsAttributes": {
+    "7474": {
+      "label": "Neo4j Browser",
+      "onAutoForward": "notify"
+    },
+    "7687": {
+      "label": "Neo4j Bolt",
+      "onAutoForward": "silent"
+    },
+    "8080": {
+      "label": "MCP Server",
+      "onAutoForward": "ignore"
+    }
+  },
+
+  "containerEnv": {
+    "NEO4J_URI": "bolt://neo4j:7687",
+    "NEO4J_USER": "neo4j", 
+    "NEO4J_PASSWORD": "password",
+    "PYTHONPATH": "/workspace:/workspace/graph-mcp"
+  },
+
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+
+  "remoteUser": "devuser",
+  "updateContentCommand": "uv pip install -e \".[dev]\"",
+  "shutdownAction": "none"
 }

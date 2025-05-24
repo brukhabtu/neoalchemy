@@ -37,9 +37,11 @@ from neoalchemy.core.field_registration import (
     initialize,
     register_array_field,
 )
+from neoalchemy.orm.fields import UniqueField, IndexedField
 from neoalchemy.orm.models import Neo4jModel, Node, Relationship
 from neoalchemy.orm.query import QueryBuilder
 from neoalchemy.orm.repository import Neo4jRepository, Neo4jTransaction
+from neoalchemy.orm.tracking import SourceScheme, Source, SOURCED_FROM
 
 # No automatic initialization - users need to call initialize() explicitly
 
@@ -56,6 +58,9 @@ __all__ = [
     "NotExpr",
     "FunctionExpr",
     "FunctionComparisonExpr",
+    # Custom field types
+    "UniqueField",
+    "IndexedField",
     # Cypher
     "CypherQuery",
     "CypherElement",
@@ -78,6 +83,10 @@ __all__ = [
     "QueryBuilder",
     # Constraints
     "setup_constraints",
+    # Source tracking
+    "SourceScheme",
+    "Source",
+    "SOURCED_FROM",
     # Utility functions
     "add_field_expressions",
     "initialize",

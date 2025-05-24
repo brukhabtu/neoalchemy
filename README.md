@@ -21,6 +21,39 @@ NeoAlchemy provides a high-level, intuitive API for working with Neo4j graph dat
 pip install neoalchemy
 ```
 
+## Development Setup (Recommended)
+
+### Using DevContainer (Recommended)
+
+The fastest way to get started with development is using the provided DevContainer configuration, which provides a complete development environment with Neo4j, all dependencies, and helpful aliases:
+
+1. **Prerequisites**: Docker and VS Code with the Dev Containers extension
+2. **Open**: Open this repository in VS Code and select "Reopen in Container" when prompted
+3. **Ready**: Everything is automatically set up - Neo4j database, Python environment, and development tools
+
+The DevContainer provides convenient aliases:
+```bash
+test-unit          # Run unit tests
+test-integration   # Run integration tests  
+test-all          # Run all tests
+test-watch        # Run tests in watch mode
+db-clear          # Clear Neo4j database
+db-status         # Check Neo4j connection
+dev-validate      # Validate complete setup
+lint              # Run linting
+format            # Format code
+typecheck         # Run type checking
+```
+
+### Manual Setup
+
+If you prefer manual setup:
+
+1. **Install Dependencies**: `pip install -e ".[dev]"`
+2. **Start Neo4j**: Ensure Neo4j is running at `bolt://localhost:7687`
+3. **Environment**: Set `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` if needed
+4. **Initialize**: Run `python -c "from neoalchemy import initialize; initialize()"`
+
 ## Quick Start
 
 ### Define Models
@@ -240,6 +273,15 @@ NeoAlchemy has a comprehensive test suite divided into unit tests and end-to-end
 
 ### Running Tests
 
+**With DevContainer (Recommended):**
+```bash
+test-all          # Run all tests
+test-unit         # Run unit tests only  
+test-integration  # Run integration tests only
+test-watch        # Run tests in watch mode
+```
+
+**Manual Setup:**
 ```bash
 # Install development dependencies
 pip install -e ".[dev]"
@@ -286,3 +328,5 @@ MIT
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+For the best development experience, use the provided DevContainer which includes all necessary tools and environment setup. See the [Development Setup](#development-setup-recommended) section above for details.
