@@ -6,24 +6,35 @@ Cypher queries in a composable, object-oriented way.
 """
 
 # Import from elements
-from neoalchemy.core.cypher.elements.element import CypherElement
 from neoalchemy.core.cypher.core.keywords import (
-    CypherKeywords, ClauseKeyword, OperatorKeyword,
-    LogicalKeyword, DirectionKeyword, FunctionKeyword
+    ClauseKeyword,
+    CypherKeywords,
+    DirectionKeyword,
+    FunctionKeyword,
+    LogicalKeyword,
+    OperatorKeyword,
 )
 
 # Import from elements
 from neoalchemy.core.cypher.elements.basic import (
-    PropertyRef, ComparisonElement, LogicalElement,
-    NegationElement, FunctionCallElement
-)
-from neoalchemy.core.cypher.elements.patterns import (
-    NodePattern, RelationshipPattern, PathPattern
+    ComparisonElement,
+    FunctionCallElement,
+    LogicalElement,
+    NegationElement,
+    PropertyRef,
 )
 from neoalchemy.core.cypher.elements.clauses import (
-    CypherClause, MatchClause, WhereClause, ReturnClause,
-    OrderByClause, LimitClause, SkipClause, WithClause
+    CypherClause,
+    LimitClause,
+    MatchClause,
+    OrderByClause,
+    ReturnClause,
+    SkipClause,
+    WhereClause,
+    WithClause,
 )
+from neoalchemy.core.cypher.elements.element import CypherElement
+from neoalchemy.core.cypher.elements.patterns import NodePattern, PathPattern, RelationshipPattern
 
 # Import from query
 from neoalchemy.core.cypher.query import CypherQuery
@@ -35,14 +46,12 @@ __all__ = [
     "PropertyRef",
     "ComparisonElement",
     "LogicalElement",
-    "NegationElement", 
+    "NegationElement",
     "FunctionCallElement",
-    
     # Patterns
     "NodePattern",
     "RelationshipPattern",
     "PathPattern",
-    
     # Clauses
     "CypherClause",
     "MatchClause",
@@ -52,15 +61,13 @@ __all__ = [
     "LimitClause",
     "SkipClause",
     "WithClause",
-    
     # Query
     "CypherQuery",
-    
     # Keywords
     "CypherKeywords",
     "ClauseKeyword",
     "OperatorKeyword",
     "LogicalKeyword",
     "DirectionKeyword",
-    "FunctionKeyword"
+    "FunctionKeyword",
 ]
