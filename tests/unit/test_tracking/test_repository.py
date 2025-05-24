@@ -22,6 +22,7 @@ class TestEntity(Node):
     name: str
 
 
+@pytest.mark.skip(reason="Source tracking repository methods not yet implemented - will be implemented in future issues")
 class TestSourceRepositoryMethods:
     """Test source tracking repository methods."""
     

@@ -37,11 +37,11 @@ from neoalchemy.core.field_registration import (
     initialize,
     register_array_field,
 )
-from neoalchemy.orm.fields import UniqueField, IndexedField
+from neoalchemy.orm.fields import IndexedField, UniqueField
 from neoalchemy.orm.models import Neo4jModel, Node, Relationship
 from neoalchemy.orm.query import QueryBuilder
 from neoalchemy.orm.repository import Neo4jRepository, Neo4jTransaction
-from neoalchemy.orm.tracking import SourceScheme, Source, SOURCED_FROM
+from neoalchemy.orm.tracking import SOURCED_FROM, Source, SourceScheme
 
 # No automatic initialization - users need to call initialize() explicitly
 

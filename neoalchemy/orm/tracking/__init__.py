@@ -5,5 +5,7 @@ This package provides components for tracking data provenance and lineage in Neo
 """
 
 from neoalchemy.orm.tracking.sources import (  # noqa
-    Source, SOURCED_FROM, SourceScheme
+    Source,
+    SOURCED_FROM,
+    SourceScheme,
 )

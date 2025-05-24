@@ -18,7 +18,7 @@ from neoalchemy.core.cypher import (
     ReturnClause,
     WhereClause,
 )
-from neoalchemy.core.expressions import Expr, FieldExpr, OperatorExpr
+from neoalchemy.core.expressions import Expr, ExpressionAdapter, FieldExpr, OperatorExpr
 
 # Generic type variables for models
 M = TypeVar("M")
@@ -46,8 +46,6 @@ class QueryBuilder(Generic[M]):
         self.entity_var = entity_var
 
         # Configure the expression adapter to use our entity variable
-        from neoalchemy.core.expressions import Expr, ExpressionAdapter
-
         Expr.set_adapter(ExpressionAdapter(entity_var=self.entity_var))
 
     def where(self, *conditions, **kwargs) -> "QueryBuilder[M]":
