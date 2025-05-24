@@ -9,9 +9,9 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Callable, Optional, TypeVar
 
-T = TypeVar("T")
-
 from neoalchemy.core.expressions.base import Expr
+
+T = TypeVar("T")
 
 
 @dataclass
