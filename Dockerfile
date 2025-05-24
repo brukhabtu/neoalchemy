@@ -26,13 +26,21 @@ USER root
 RUN chown -R testuser:testuser /workspace
 USER testuser
 
+# Create virtual environment first
+RUN uv venv /workspace/.venv
+ENV PATH="/workspace/.venv/bin:$PATH"
+
+# Copy dependency files first for Docker layer caching
+COPY --chown=testuser:testuser pyproject.toml uv.lock /workspace/
+
+# Install dependencies (this will be cached if dependencies don't change)
+RUN uv pip install -e ".[dev]"
+
 # Copy the entire project
 COPY --chown=testuser:testuser . /workspace/
 
-# Create virtual environment and install dependencies
-RUN uv venv /workspace/.venv
-ENV PATH="/workspace/.venv/bin:$PATH"
-RUN uv pip install -e ".[dev]"
+# Install the project in development mode (should be fast since deps are cached)
+RUN uv pip install -e . --no-deps
 
 # Default command runs unit tests
-CMD ["uv", "run", "python", "-m", "pytest", "tests/unit/", "-v"]
+CMD ["python", "-m", "pytest", "tests/unit/", "-v"]
