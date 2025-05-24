@@ -5,12 +5,13 @@ This file contains fixtures that are used by both unit and E2E tests,
 such as model setup and tear down.
 """
 
-import pytest
 import os
+
+import pytest
 from neo4j import GraphDatabase
 
-from neoalchemy.orm.repository import Neo4jRepository
 from neoalchemy import initialize
+from neoalchemy.orm.repository import Neo4jRepository
 
 # Import models from the models module
 # No model definitions here - they're all in models.py

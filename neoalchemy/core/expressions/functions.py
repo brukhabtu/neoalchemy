@@ -8,12 +8,6 @@ comparisons involving functions.
 
 from typing import Any, List
 
-from neoalchemy.core.cypher import (
-    ComparisonElement,
-    CypherElement,
-    FunctionCallElement,
-    PropertyRef,
-)
 from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
 from neoalchemy.core.expressions.logical import LogicalExpr
 

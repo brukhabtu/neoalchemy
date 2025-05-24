@@ -7,16 +7,16 @@ and other model functionality that can be tested in isolation from
 a Neo4j database.
 """
 
-import pytest
-from datetime import datetime
-from uuid import UUID
-from typing import Optional
 from typing import List
+from uuid import UUID
 
-from neoalchemy.orm.models import Node, Relationship, Neo4jModel
-from neoalchemy.core.expressions import FieldExpr
+import pytest
+
 from neoalchemy import initialize
+from neoalchemy.core.expressions import FieldExpr
+from neoalchemy.orm.models import Neo4jModel, Node, Relationship
 from tests.unit.test_utils import ModelTestHelper
+
 # isolated_registry is now a fixture in unit/conftest.py
 
 

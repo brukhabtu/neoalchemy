@@ -7,16 +7,16 @@ complete Cypher queries from individual elements and clauses.
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from neoalchemy.core.cypher.elements.element import CypherElement
 from neoalchemy.core.cypher.elements.clauses import (
-    MatchClause,
-    WhereClause,
-    ReturnClause,
-    OrderByClause,
     LimitClause,
+    MatchClause,
+    OrderByClause,
+    ReturnClause,
     SkipClause,
+    WhereClause,
     WithClause,
 )
+from neoalchemy.core.cypher.elements.element import CypherElement
 
 
 class CypherQuery(CypherElement):

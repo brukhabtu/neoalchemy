@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from neo4j import Driver
 
-from neoalchemy.orm.query import QueryBuilder
 from neoalchemy.core.state import expression_state
+from neoalchemy.orm.query import QueryBuilder
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -131,7 +131,6 @@ class Neo4jTransaction:
 
         # Enable expression capturing for Pythonic query syntax
         # This allows 'in' operator and chained comparisons to work
-        from neoalchemy.core.state import expression_state
 
         expression_state.is_capturing = True
 

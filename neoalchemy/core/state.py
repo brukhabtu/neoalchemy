@@ -5,9 +5,9 @@ This module provides utilities for maintaining state across expression evaluatio
 especially for Pythonic operations like chained comparisons and containment checks.
 """
 
-from dataclasses import dataclass
 from contextlib import contextmanager
-from typing import Optional, Callable, TypeVar, Any
+from dataclasses import dataclass
+from typing import Any, Callable, Optional, TypeVar
 
 T = TypeVar("T")
 

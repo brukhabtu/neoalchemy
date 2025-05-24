@@ -8,7 +8,6 @@ Pythonic query API.
 
 from typing import Any, List, Optional
 
-from neoalchemy.core.cypher import CypherElement, PropertyRef
 from neoalchemy.core.expressions.logical import LogicalExpr
 from neoalchemy.core.state import expression_state
 
@@ -79,8 +78,8 @@ class FieldExpr(LogicalExpr):
         Returns:
             Always returns True, but records the expression in the current transaction
         """
-        from neoalchemy.core.expressions.operators import OperatorExpr
         from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
+        from neoalchemy.core.expressions.operators import OperatorExpr
         from neoalchemy.core.state import expression_state
 
         # Create the appropriate expression based on field type
@@ -116,8 +115,8 @@ class FieldExpr(LogicalExpr):
         Returns:
             An expression for containment check
         """
-        from neoalchemy.core.expressions.operators import OperatorExpr
         from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
+        from neoalchemy.core.expressions.operators import OperatorExpr
 
         if self.is_array_field():
             # For arrays, check array membership
@@ -137,8 +136,8 @@ class FieldExpr(LogicalExpr):
         Returns:
             An expression for equality comparison
         """
-        from neoalchemy.core.expressions.operators import OperatorExpr
         from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
+        from neoalchemy.core.expressions.operators import OperatorExpr
 
         if value is None:
             return self.is_null()
@@ -316,8 +315,8 @@ class FieldExpr(LogicalExpr):
         Returns:
             An expression for prefix matching
         """
-        from neoalchemy.core.expressions.operators import OperatorExpr
         from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
+        from neoalchemy.core.expressions.operators import OperatorExpr
 
         return OperatorExpr(self.name, K.STARTS_WITH, prefix)
 
@@ -341,8 +340,8 @@ class FieldExpr(LogicalExpr):
         Returns:
             An expression for suffix matching
         """
-        from neoalchemy.core.expressions.operators import OperatorExpr
         from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
+        from neoalchemy.core.expressions.operators import OperatorExpr
 
         return OperatorExpr(self.name, K.ENDS_WITH, suffix)
 
@@ -366,8 +365,8 @@ class FieldExpr(LogicalExpr):
         Returns:
             An expression for list membership
         """
-        from neoalchemy.core.expressions.operators import OperatorExpr
         from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
+        from neoalchemy.core.expressions.operators import OperatorExpr
 
         return OperatorExpr(self.name, K.IN, values)
 

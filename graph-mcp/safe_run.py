@@ -2,25 +2,23 @@
 Safe code execution environment for NeoAlchemy.
 """
 
-import sys
-import io
-import textwrap
-from typing import Any, Dict, Optional
 import ast
-import traceback
 import contextlib
+import io
 import threading
-import time
-from neo4j import GraphDatabase
+import traceback
 from importlib import import_module
+from typing import Any, Dict
+
+from neo4j import GraphDatabase
+from neo4j.time import Date, DateTime
 
 # Import sourced models and NeoAlchemy
-from sourced_models import Person, Project, Team
-from sourced_models import WORKS_ON, BELONGS_TO, MANAGES
-from sources import Source, SourceType, SOURCED_FROM, initialize_sources
+from sourced_models import BELONGS_TO, MANAGES, WORKS_ON, Person, Project, Team
+from sources import SOURCED_FROM, Source, SourceType, initialize_sources
+
 from neoalchemy import initialize
 from neoalchemy.orm.repository import Neo4jRepository
-from neo4j.time import DateTime, Date
 
 # Initialize field expressions
 initialize()

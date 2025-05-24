@@ -6,9 +6,9 @@ database constraints based on model field definitions.
 """
 
 import logging
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Type
 
-from neo4j import Driver, GraphDatabase
+from neo4j import Driver
 
 from neoalchemy.orm.models import Node, Relationship
 

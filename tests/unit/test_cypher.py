@@ -5,8 +5,8 @@ This test suite verifies that the Cypher element architecture correctly generate
 Cypher queries from high-level query representations.
 """
 
+
 import pytest
-from typing import Dict, List, Any
 
 from neoalchemy.core.cypher import (
     CypherQuery,
@@ -15,12 +15,11 @@ from neoalchemy.core.cypher import (
     NodePattern,
     OrderByClause,
     PathPattern,
-    PropertyRef,
     RelationshipPattern,
     ReturnClause,
     WhereClause,
 )
-from neoalchemy.core.expressions import FieldExpr, OperatorExpr
+from neoalchemy.core.expressions import OperatorExpr
 
 
 @pytest.mark.unit

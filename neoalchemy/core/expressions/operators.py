@@ -8,13 +8,6 @@ composite expressions.
 
 from typing import Any
 
-from neoalchemy.core.cypher import (
-    ComparisonElement,
-    CypherElement,
-    LogicalElement,
-    NegationElement,
-    PropertyRef,
-)
 from neoalchemy.core.expressions.logical import LogicalExpr
 
 

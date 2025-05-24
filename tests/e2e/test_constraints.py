@@ -4,13 +4,13 @@ End-to-end tests for Neo4j constraints created from model field definitions.
 These tests verify that the constraints are properly created in the Neo4j database.
 """
 
+
 import pytest
 from pydantic import Field
-from typing import Optional
 
-from neoalchemy.orm.models import Node
 from neoalchemy import initialize
 from neoalchemy.constraints import setup_constraints
+from neoalchemy.orm.models import Node
 
 
 class ConstrainedPerson(Node):

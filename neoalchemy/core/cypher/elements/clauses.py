@@ -8,8 +8,8 @@ clauses in a Cypher query, such as MATCH, WHERE, RETURN, etc.
 from abc import ABC
 from typing import Any, Dict, List, Tuple, Union
 
-from neoalchemy.core.cypher.elements.element import CypherElement
 from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
+from neoalchemy.core.cypher.elements.element import CypherElement
 
 
 class CypherClause(CypherElement, ABC):

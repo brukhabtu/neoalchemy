@@ -7,8 +7,8 @@ queries, including property references, comparisons, and function calls.
 
 from typing import Any, Dict, List, Tuple
 
-from neoalchemy.core.cypher.elements.element import CypherElement
 from neoalchemy.core.cypher.core.keywords import CypherKeywords as K
+from neoalchemy.core.cypher.elements.element import CypherElement
 
 
 class PropertyRef(CypherElement):

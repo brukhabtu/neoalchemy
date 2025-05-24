@@ -5,10 +5,11 @@ This module provides functionality for registering field expressions
 on model classes, allowing for a clean, Pythonic syntax in query expressions.
 """
 
-import venusian  # type: ignore
 import importlib
 import inspect
-from typing import Type, Any, Optional, Dict, Set, List
+from typing import Any, Dict, List, Optional, Set, Type
+
+import venusian  # type: ignore
 
 # Import from correct modules to avoid circular imports
 from neoalchemy.core.expressions import FieldExpr

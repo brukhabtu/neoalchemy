@@ -7,8 +7,8 @@ including model classes, query builder, and repository.
 
 # Import important components for public API
 from neoalchemy.orm.models import Neo4jModel, Node, Relationship
-from neoalchemy.orm.repository import Neo4jRepository
 from neoalchemy.orm.query import QueryBuilder
+from neoalchemy.orm.repository import Neo4jRepository
 
 # Define what's exported when someone does "from neoalchemy.orm import *"
 __all__ = [

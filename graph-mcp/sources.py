@@ -8,14 +8,13 @@ from which the entity was created or updated.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, ClassVar, Dict, List, Optional, Type, Union
+from typing import Any, ClassVar, List, Optional, Type, Union
 from uuid import UUID
 
 from neo4j.time import DateTime
 from pydantic import Field, model_validator
 
 from neoalchemy.orm.models import Node, Relationship
-from neoalchemy.core.expressions import FieldExpr
 
 
 class SourceType(str, Enum):

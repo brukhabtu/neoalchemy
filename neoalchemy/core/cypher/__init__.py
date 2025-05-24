@@ -6,35 +6,35 @@ Cypher queries in a composable, object-oriented way.
 """
 
 # Import from elements
-from neoalchemy.core.cypher.elements.element import CypherElement
 from neoalchemy.core.cypher.core.keywords import (
-    CypherKeywords,
     ClauseKeyword,
-    OperatorKeyword,
-    LogicalKeyword,
+    CypherKeywords,
     DirectionKeyword,
     FunctionKeyword,
+    LogicalKeyword,
+    OperatorKeyword,
 )
 
 # Import from elements
 from neoalchemy.core.cypher.elements.basic import (
-    PropertyRef,
     ComparisonElement,
+    FunctionCallElement,
     LogicalElement,
     NegationElement,
-    FunctionCallElement,
+    PropertyRef,
 )
-from neoalchemy.core.cypher.elements.patterns import NodePattern, RelationshipPattern, PathPattern
 from neoalchemy.core.cypher.elements.clauses import (
     CypherClause,
-    MatchClause,
-    WhereClause,
-    ReturnClause,
-    OrderByClause,
     LimitClause,
+    MatchClause,
+    OrderByClause,
+    ReturnClause,
     SkipClause,
+    WhereClause,
     WithClause,
 )
+from neoalchemy.core.cypher.elements.element import CypherElement
+from neoalchemy.core.cypher.elements.patterns import NodePattern, PathPattern, RelationshipPattern
 
 # Import from query
 from neoalchemy.core.cypher.query import CypherQuery

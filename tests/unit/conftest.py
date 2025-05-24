@@ -5,12 +5,12 @@ This file contains fixtures specific to unit tests, particularly mocks
 that allow testing without a real Neo4j database connection.
 """
 
-import pytest
-from unittest.mock import MagicMock, patch
-from typing import Dict, Any, List
+from unittest.mock import MagicMock
 
-from neoalchemy.orm.repository import Neo4jRepository
+import pytest
+
 from neoalchemy import initialize
+from neoalchemy.orm.repository import Neo4jRepository
 
 # Initialize NeoAlchemy
 initialize()
@@ -70,7 +70,7 @@ def mock_session():
 @pytest.fixture
 def isolated_registry():
     """Provide isolation for model registries during testing."""
-    from neoalchemy.orm.models import Node, Relationship, Neo4jModel
+    from neoalchemy.orm.models import Neo4jModel, Node, Relationship
 
     # Save original registries
     original_node_registry = Node.__registry__.copy()

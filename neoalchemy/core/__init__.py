@@ -6,38 +6,38 @@ including expressions, field registration, and state management.
 """
 
 # Import important components for public API
-from neoalchemy.core.expressions import (
-    Expr,
-    FieldExpr,
-    OperatorExpr,
-    CompositeExpr,
-    NotExpr,
-    FunctionExpr,
-    FunctionComparisonExpr,
-)
-from neoalchemy.core.field_registration import (
-    initialize,
-    register_array_field,
-    get_array_fields,
-    add_field_expressions,
-)
-from neoalchemy.core.state import expression_state
 from neoalchemy.core.cypher import (
-    CypherElement,
     CypherClause,
+    CypherElement,
     CypherQuery,
+    LimitClause,
+    MatchClause,
     NodePattern,
-    RelationshipPattern,
+    OrderByClause,
     PathPattern,
     PropertyRef,
-    MatchClause,
-    WhereClause,
+    RelationshipPattern,
     ReturnClause,
-    OrderByClause,
-    LimitClause,
     SkipClause,
+    WhereClause,
     WithClause,
 )
+from neoalchemy.core.expressions import (
+    CompositeExpr,
+    Expr,
+    FieldExpr,
+    FunctionComparisonExpr,
+    FunctionExpr,
+    NotExpr,
+    OperatorExpr,
+)
+from neoalchemy.core.field_registration import (
+    add_field_expressions,
+    get_array_fields,
+    initialize,
+    register_array_field,
+)
+from neoalchemy.core.state import expression_state
 
 # Define what's exported when someone does "from neoalchemy.core import *"
 __all__ = [

@@ -5,7 +5,6 @@ This module provides the necessary adapters to convert high-level expression
 objects to low-level cypher elements, ensuring proper separation of concerns.
 """
 
-from typing import Dict, Any
 
 from neoalchemy.core.cypher import (
     ComparisonElement,
@@ -17,8 +16,8 @@ from neoalchemy.core.cypher import (
 )
 from neoalchemy.core.expressions.base import Expr
 from neoalchemy.core.expressions.fields import FieldExpr
-from neoalchemy.core.expressions.functions import FunctionExpr, FunctionComparisonExpr
-from neoalchemy.core.expressions.operators import OperatorExpr, CompositeExpr, NotExpr
+from neoalchemy.core.expressions.functions import FunctionComparisonExpr, FunctionExpr
+from neoalchemy.core.expressions.operators import CompositeExpr, NotExpr, OperatorExpr
 
 
 class ExpressionAdapter:

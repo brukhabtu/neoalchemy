@@ -4,11 +4,12 @@ Test utilities for NeoAlchemy.
 This module provides utility functions and classes for testing NeoAlchemy.
 """
 
-from typing import Dict, Type, List, Set, Any
+from typing import List
+
 import pytest
 
-from neoalchemy.orm.models import Node, Relationship
 from neoalchemy.core.expressions import FieldExpr
+from neoalchemy.orm.models import Node, Relationship
 
 
 class ModelTestHelper:

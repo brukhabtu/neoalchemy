@@ -7,12 +7,11 @@ at least one source for every entity created.
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, ClassVar
+from typing import ClassVar, Optional
 from uuid import UUID
 
 from neo4j.time import Date, DateTime
 from pydantic import Field, model_validator
-
 from sources import SourcedNode, SourcedRelationship, SourceType
 
 

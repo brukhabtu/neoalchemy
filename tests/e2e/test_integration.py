@@ -3,15 +3,14 @@ End-to-end integration tests for NeoAlchemy against a real Neo4j database.
 These tests require a running Neo4j instance.
 """
 
-import os
-import pytest
 from uuid import UUID
 
+import pytest
+
 # Import models from the models module
-from tests.models import Person, Company, Product, WORKS_FOR
+from tests.models import WORKS_FOR, Company, Person
 
 # Import the ORM/Repository
-from neoalchemy import Neo4jRepository
 
 
 @pytest.mark.e2e
@@ -58,7 +57,7 @@ def test_relationships(repo, clean_db):
         tx.relate(person, relationship, company)
 
         # Query the person and verify the relationship exists
-        query = f"""
+        query = """
         MATCH (p:Person)-[r:WORKS_FOR]->(c:Company)
         WHERE p.id = $person_id AND c.id = $company_id
         RETURN r.role as role

@@ -4,11 +4,10 @@ Base classes for Neo4j-Pydantic integration.
 
 from datetime import datetime
 from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar
-from uuid import UUID, uuid4
+from uuid import UUID
 
 # Import Neo4j time types
-from neo4j.time import DateTime, Date
-
+from neo4j.time import DateTime
 from pydantic import BaseModel, Field, model_validator
 
 # Import expressions from the expressions module

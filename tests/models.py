@@ -6,10 +6,9 @@ This module defines all the test models used across different test files.
 
 from datetime import datetime
 
-from neoalchemy.orm.models import Node, Relationship
 from pydantic import Field
 
-from neoalchemy import initialize
+from neoalchemy.orm.models import Node, Relationship
 
 
 class Person(Node):

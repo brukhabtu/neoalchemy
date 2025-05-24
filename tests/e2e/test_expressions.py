@@ -10,9 +10,6 @@ import pytest
 # Import Person model from the models module
 from tests.models import Person
 
-from neoalchemy.core.expressions import FieldExpr
-from neoalchemy.core.state import expression_state
-
 
 @pytest.mark.e2e
 def test_pythonic_string_methods(repo, clean_db):

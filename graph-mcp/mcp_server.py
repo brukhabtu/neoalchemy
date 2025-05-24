@@ -3,44 +3,19 @@
 NeoAlchemy MCP Server - Provides API tools for working with graph data models.
 """
 
-from typing import Any, Dict, List, Optional, Type, Union, AsyncIterator, get_type_hints, TypeVar
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-import inspect
-from enum import Enum
-from pydantic import BaseModel
+from typing import Any, AsyncIterator, Dict, Type, TypeVar, Union, get_type_hints
 
 # No need for custom schema function, we'll use the built-in model_json_schema method
 # directly on model classes (Pydantic v2 provides this as a class method)
-
-from mcp.server.fastmcp import FastMCP, Context
+from mcp.server.fastmcp import Context, FastMCP
 from neo4j import GraphDatabase
 
 # Import our custom models
 # Using sourced models which require source tracking
-from sourced_models import (
-    Person,
-    Project,
-    Team,
-    Account,
-    ConfluenceAttachment,
-    ConfluenceComment,
-    ConfluenceEntity,
-    ConfluencePage,
-    ConfluenceSpace,
-    WORKS_ON,
-    BELONGS_TO,
-    MANAGES,
-    HAS_ACCOUNT,
-    AUTHORED,
-    MODIFIED,
-    PARENT_OF,
-    HAS_ATTACHMENT,
-    MENTIONED_IN,
-)
-
 # Import source tracking functionality
-from sources import Source, SourceType, SOURCED_FROM, initialize_sources
+from sources import initialize_sources
 
 from neoalchemy import initialize, setup_constraints
 from neoalchemy.orm.models import Node, Relationship

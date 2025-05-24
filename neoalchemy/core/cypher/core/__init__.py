@@ -5,16 +5,16 @@ This package contains the fundamental classes and constants that form the
 foundation of the Cypher query system.
 """
 
-from neoalchemy.core.cypher.elements.element import CypherElement
 from neoalchemy.core.cypher.core.keywords import (
-    KeywordEnum,
     ClauseKeyword,
-    OperatorKeyword,
-    LogicalKeyword,
+    CypherKeywords,
     DirectionKeyword,
     FunctionKeyword,
-    CypherKeywords,
+    KeywordEnum,
+    LogicalKeyword,
+    OperatorKeyword,
 )
+from neoalchemy.core.cypher.elements.element import CypherElement
 
 __all__ = [
     "CypherElement",

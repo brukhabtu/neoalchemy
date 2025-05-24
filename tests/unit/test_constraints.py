@@ -5,12 +5,12 @@ These tests verify that the constraint metadata is properly registered
 and accessed in model classes without requiring a Neo4j database.
 """
 
-import pytest
-from pydantic import Field
 from typing import Optional
 
-from neoalchemy.orm.models import Node, Relationship
+from pydantic import Field
+
 from neoalchemy import initialize
+from neoalchemy.orm.models import Node, Relationship
 
 
 class TestFieldConstraints:

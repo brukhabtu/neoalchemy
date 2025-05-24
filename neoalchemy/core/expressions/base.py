@@ -6,13 +6,13 @@ establishing the common interface and functionality for all expressions.
 """
 
 from abc import ABC
-from typing import Any, ClassVar, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 from neoalchemy.core.cypher import CypherElement
 
 # Use TYPE_CHECKING to avoid circular imports
 if TYPE_CHECKING:
-    from neoalchemy.core.expressions.adapter import ExpressionAdapter
+    pass
 
 
 class Expr(ABC):
