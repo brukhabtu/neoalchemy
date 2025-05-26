@@ -5,8 +5,10 @@ Integration tests use a real Neo4j database but with proper isolation
 and cleanup between tests.
 """
 
+import os
 import pytest
 from neo4j import GraphDatabase
+from neo4j.exceptions import ServiceUnavailable, AuthError
 
 from neoalchemy import initialize
 from neoalchemy.orm.repository import Neo4jRepository
@@ -15,17 +17,14 @@ from neoalchemy.orm.repository import Neo4jRepository
 @pytest.fixture(scope="session")
 def neo4j_uri():
     """Neo4j connection URI for integration tests."""
-    # Use environment variable or default
-    import os
     return os.getenv("NEO4J_URI", "bolt://localhost:7687")
 
 
 @pytest.fixture(scope="session")
 def neo4j_auth():
     """Neo4j authentication for integration tests."""
-    import os
     user = os.getenv("NEO4J_USER", "neo4j")
-    password = os.getenv("NEO4J_PASSWORD", "password")
+    password = os.getenv("NEO4J_PASSWORD", "test")  # Changed from "password" for security
     return (user, password)
 
 
@@ -37,8 +36,11 @@ def driver(neo4j_uri, neo4j_auth):
     # Verify connection
     try:
         driver_instance.verify_connectivity()
-    except Exception as e:
+    except (ServiceUnavailable, AuthError) as e:
         pytest.skip(f"Neo4j not available: {e}")
+    except Exception as e:
+        # Re-raise unexpected errors so they don't get hidden
+        raise RuntimeError(f"Unexpected error connecting to Neo4j: {e}") from e
     
     yield driver_instance
     driver_instance.close()
@@ -70,15 +72,18 @@ def clean_db(driver):
             constraints = session.run("SHOW CONSTRAINTS").data()
             for constraint in constraints:
                 name = constraint.get("name")
-                if name:
-                    session.run(f"DROP CONSTRAINT {name} IF EXISTS")
+                # Validate constraint name to prevent injection
+                if name and name.replace("_", "").replace("-", "").isalnum():
+                    session.run(f"DROP CONSTRAINT `{name}` IF EXISTS")
             
             # Get and drop all indexes
             indexes = session.run("SHOW INDEXES").data()
             for index in indexes:
                 name = index.get("name")
-                if name and not name.startswith("btree"):  # Keep system indexes
-                    session.run(f"DROP INDEX {name} IF EXISTS")
+                # Validate index name and skip system indexes
+                if (name and not name.startswith("btree") and 
+                    name.replace("_", "").replace("-", "").isalnum()):
+                    session.run(f"DROP INDEX `{name}` IF EXISTS")
         except Exception:
             # Some Neo4j versions might not support SHOW CONSTRAINTS/INDEXES
             # or might have different syntax - that's okay for integration tests

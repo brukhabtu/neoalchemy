@@ -78,10 +78,10 @@ def test_index_creation(driver, clean_db, initialized_neoalchemy):
 
 
 @pytest.mark.integration
-def test_uniqueness_enforcement(repo, clean_db, driver, initialized_neoalchemy):
+def test_uniqueness_enforcement(repo, clean_db, initialized_neoalchemy):
     """Test that uniqueness constraints are enforced."""
     # Set up constraints
-    setup_constraints(driver, model_classes=[ConstrainedPerson])
+    setup_constraints(repo._driver, model_classes=[ConstrainedPerson])
     
     with repo.transaction() as tx:
         # Create first person with unique email
