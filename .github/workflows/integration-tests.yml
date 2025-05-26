@@ -60,7 +60,7 @@ jobs:
         NEO4J_PASSWORD: password
       run: |
         echo "🧪 Running integration tests..."
-        uv run python -m pytest tests/e2e/ -v --tb=short
+        uv run python -m pytest tests/integration/ -m integration -v --tb=short
 
     - name: Run integration tests with coverage
       env:
@@ -69,4 +69,4 @@ jobs:
         NEO4J_PASSWORD: password
       run: |
         echo "📊 Running integration tests with coverage..."
-        uv run python -m pytest tests/e2e/ --cov=neoalchemy --cov-report=term-missing
+        uv run python -m pytest tests/integration/ -m integration --cov=neoalchemy --cov-report=term-missing

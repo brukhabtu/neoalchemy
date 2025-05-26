@@ -190,7 +190,7 @@ jobs:
         NEO4J_PASSWORD: password
       run: |
         echo "🧪 Running integration tests..."
-        uv run python -m pytest tests/e2e/ -v --tb=short
+        uv run python -m pytest tests/integration/ -m integration -v --tb=short
 
   # Summary job
   ci-summary:
