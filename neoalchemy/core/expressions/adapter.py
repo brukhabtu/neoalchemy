@@ -5,7 +5,6 @@ This module provides the necessary adapters to convert high-level expression
 objects to low-level cypher elements, ensuring proper separation of concerns.
 """
 
-
 from neoalchemy.core.cypher import (
     ComparisonElement,
     CypherElement,
