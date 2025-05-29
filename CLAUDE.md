@@ -23,6 +23,7 @@ Both components share the same Neo4j database and work together to provide both 
 - Linting: `ruff check neoalchemy/`
 - Formatting: `ruff format neoalchemy/`
 - Test coverage: `python -m pytest --cov=neoalchemy tests/`
+- Use uv to run python commands
 
 ## Testing Strategy
 The repository has dual-component testing requirements:
