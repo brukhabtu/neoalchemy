@@ -1,5 +1,12 @@
 # NeoAlchemy
 
+[![CI](https://github.com/brukhabtu/neoalchemy/workflows/Continuous%20Integration/badge.svg)](https://github.com/brukhabtu/neoalchemy/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/brukhabtu/neoalchemy/branch/main/graph/badge.svg)](https://codecov.io/gh/brukhabtu/neoalchemy)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://github.com/brukhabtu/neoalchemy/pkgs/container/neoalchemy)
+[![Tests](https://img.shields.io/badge/tests-227%20passing-brightgreen.svg)](#testing)
+
 A SQLAlchemy-inspired Pythonic ORM for Neo4j, focused on clean syntax and type safety.
 
 ## Overview
@@ -59,24 +66,23 @@ If you prefer manual setup:
 ### Define Models
 
 ```python
-from pydantic import Field
-from neoalchemy.orm.models import Node, Relationship
-from neoalchemy import initialize
+from neoalchemy import initialize, Node, Relationship
+from neoalchemy.orm.fields import PrimaryField, UniqueField, IndexedField
 
 # Always call initialize() to register field expressions
 initialize()
 
 class Person(Node):
-    name: str
+    email: PrimaryField(str)  # Primary key (unique + indexed)
+    name: IndexedField(str)   # Indexed for fast search
     age: int
-    email: str = ""
     active: bool = True
     tags: list[str] = []
 
 class Company(Node):
-    name: str
+    name: PrimaryField(str)   # Primary key (unique + indexed)
     founded: int
-    industry: str = ""
+    industry: IndexedField(str, default="")  # Indexed for filtering
 
 class WORKS_FOR(Relationship):
     role: str
@@ -98,10 +104,10 @@ repo = Neo4jRepository(driver)
 # All operations must be performed within a transaction
 with repo.transaction() as tx:
     # Create entities
-    alice = tx.create(Person(name="Alice", age=30, tags=["developer", "python"]))
+    alice = tx.create(Person(email="alice@example.com", name="Alice", age=30, tags=["developer", "python"]))
     acme = tx.create(Company(name="Acme Inc", founded=1990, industry="Technology"))
     
-    # Create a relationship
+    # Create a relationship (automatically uses primary keys: alice.email and acme.name)
     tx.relate(alice, WORKS_FOR(role="Engineer", since=2020), acme)
     
     # Query with various conditions
@@ -113,6 +119,15 @@ with repo.transaction() as tx:
     
     # Using 'in' operator for string/array content
     python_devs = tx.query(Person).where("python" in Person.tags).find()
+    
+    # Logical operators (use bitwise operators, not and/or/not)
+    engineers = tx.query(Person).where(
+        (Person.age > 25) & (Person.department == "Engineering")  # AND
+    ).find()
+    
+    admins_or_managers = tx.query(Person).where(
+        (Person.role == "admin") | (Person.role == "manager")     # OR
+    ).find()
     
     # String operations - both formats work
     emails1 = tx.query(Person).where(Person.email.ends_with("@example.com")).find()
@@ -126,6 +141,34 @@ with repo.transaction() as tx:
 ```
 
 ## Key Concepts
+
+### Field Types
+
+NeoAlchemy provides three field types for common Neo4j patterns:
+
+```python
+from neoalchemy.orm.fields import PrimaryField, UniqueField, IndexedField
+from uuid import uuid4
+
+class User(Node):
+    # Primary key (unique + indexed, auto-detected for relationships)
+    id: PrimaryField(UUID, default_factory=uuid4)
+    
+    # Unique constraints
+    email: UniqueField(str)  # Just unique
+    username: UniqueField(str, index=True, min_length=3, max_length=20)  # Unique + indexed
+    
+    # Indexed for fast lookups (not unique)
+    name: IndexedField(str)  # Many users can have same name
+    age: IndexedField(int, ge=0, le=150)  # For range queries
+    department: IndexedField(str)  # For filtering
+```
+
+#### Field Type Guide
+
+- **`PrimaryField(type)`**: Primary key for relationships (always unique + indexed)
+- **`UniqueField(type, index=False)`**: Unique constraints with optional indexing
+- **`IndexedField(type)`**: Fast lookups on non-unique data (names, categories, etc.)
 
 ### Architecture
 
@@ -166,7 +209,7 @@ with repo.transaction() as tx:
 The expression system allows you to build complex query conditions using Python operators:
 
 - **Comparison**: `==`, `!=`, `>`, `<`, `>=`, `<=`
-- **Logical**: `&` (AND), `|` (OR), `~` (NOT)
+- **Logical**: `&` (AND), `|` (OR), `~` (NOT) - *Note: Uses bitwise operators, not `and`/`or`/`not`*
 - **Chained comparisons**: `25 <= Person.age <= 35`
 - **Containment**: `"Smith" in Person.last_name`
 - **Reversed containment**: `Person.role in ["admin", "manager"]`
