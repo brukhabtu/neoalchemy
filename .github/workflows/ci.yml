@@ -134,15 +134,10 @@ jobs:
         echo "🧪 Running unit tests in Docker container..."
         docker run --rm -v $(pwd):/workspace -w /workspace \
           ${{ env.IMAGE_NAME }} \
-          python -m pytest tests/unit/ -v --tb=short --cov=neoalchemy --cov-report=xml
+          python -m pytest tests/unit/ -v --tb=short
 
-    - name: Upload coverage to Codecov
-      if: github.event_name != 'pull_request'
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unit-tests
-        name: unit-tests-coverage
+    # Note: Coverage disabled due to Docker permission issues with SQLite files
+    # TODO: Re-enable coverage when container permissions are resolved
 
   integration-tests:
     name: Integration Tests
