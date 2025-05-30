@@ -95,8 +95,11 @@ def scan_for_models(scanner, name, obj):
     # We can't import Node and Relationship directly due to circular imports,
     # so we check for common attributes that would identify model classes
     if isinstance(obj, type) and hasattr(obj, "__annotations__") and hasattr(obj, "model_config"):
-        # This is likely a model class
-        add_field_expressions(obj)
+        # For models that use Neo4jModelMeta metaclass, field expressions are handled
+        # automatically via __getattr__, so we don't need to add them explicitly.
+        # Only add field expressions for models that don't have the metaclass.
+        if not hasattr(obj.__class__, "__getattr__"):
+            add_field_expressions(obj)
 
         # Auto-register array fields
         if hasattr(obj, "__annotations__"):

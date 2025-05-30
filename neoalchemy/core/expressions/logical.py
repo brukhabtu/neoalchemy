@@ -12,14 +12,31 @@ from neoalchemy.core.expressions.base import Expr
 class LogicalExpr(Expr):
     """Base class for expressions that support logical operations.
 
-    Provides logical operator methods like __and__, __or__, and __invert__
-    that can be used to combine expressions with AND, OR, and NOT logic.
+    Provides logical operator methods using Python's bitwise operators:
+    - & for logical AND
+    - | for logical OR
+    - ~ for logical NOT
+
+    Note: NeoAlchemy uses bitwise operators (&, |, ~) rather than Python's
+    logical operators (and, or, not) due to Python's short-circuit evaluation
+    which prevents proper expression composition.
+
+    Examples:
+        # Correct usage with bitwise operators
+        (Person.age > 30) & (Person.active == True)      # AND
+        (Person.role == "admin") | (Person.role == "manager")  # OR
+        ~(Person.active == True)                         # NOT
+
+        # This won't work as expected (uses Python's logical operators)
+        (Person.age > 30) and (Person.active == True)   # Don't use
+        (Person.role == "admin") or (Person.role == "manager")  # Don't use
+        not (Person.active == True)                      # Don't use
     """
 
     def __and__(self, other: "LogicalExpr") -> "LogicalExpr":
         """Combine with another expression using logical AND.
 
-        This supports the Python 'and' operator:
+        This supports the bitwise & operator:
         expr1 & expr2
 
         Args:
@@ -35,7 +52,7 @@ class LogicalExpr(Expr):
     def __or__(self, other: "LogicalExpr") -> "LogicalExpr":
         """Combine with another expression using logical OR.
 
-        This supports the Python 'or' operator:
+        This supports the bitwise | operator:
         expr1 | expr2
 
         Args:
@@ -51,7 +68,7 @@ class LogicalExpr(Expr):
     def __invert__(self) -> "LogicalExpr":
         """Negate this expression (logical NOT).
 
-        This supports the Python unary negation:
+        This supports the bitwise ~ operator:
         ~expr
 
         Returns:

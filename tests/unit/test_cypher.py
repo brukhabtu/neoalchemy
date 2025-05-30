@@ -17,7 +17,9 @@ from neoalchemy.core.cypher import (
     PathPattern,
     RelationshipPattern,
     ReturnClause,
+    SkipClause,
     WhereClause,
+    WithClause,
 )
 from neoalchemy.core.expressions import OperatorExpr
 
@@ -289,3 +291,129 @@ class TestComplexQueries:
         # Check that the properties were added to params correctly
         assert "p0" in params
         assert params["p0"] == {"role": "Developer", "since": 2020}
+
+
+@pytest.mark.unit  
+class TestCypherQueryMissingCoverage:
+    """Test cases to cover missing lines in CypherQuery."""
+    
+    def test_query_with_with_clauses(self):
+        """Test CypherQuery with WITH clauses (covers lines 89-90)."""
+        # Create basic components
+        node = NodePattern("n", ["Person"])
+        match = MatchClause(node)
+        
+        # Create WITH clause
+        with_clause = WithClause(["n"])
+        
+        ret = ReturnClause(["n"])
+        
+        # Create query with WITH clauses
+        query = CypherQuery(
+            match=match,
+            with_clauses=[with_clause],
+            return_clause=ret
+        )
+        
+        # Compile the query
+        params = {}
+        cypher, param_index = query.to_cypher(params)
+        
+        # Verify WITH clause is included
+        assert "MATCH (n:Person)" in cypher
+        assert "WITH n" in cypher
+        assert "RETURN n" in cypher
+        assert params == {}
+    
+    def test_query_with_skip_clause(self):
+        """Test CypherQuery with SKIP clause (covers lines 104-105)."""
+        # Create basic components
+        node = NodePattern("n", ["Person"])
+        match = MatchClause(node)
+        
+        ret = ReturnClause(["n"])
+        skip = SkipClause(10)
+        
+        # Create query with SKIP clause
+        query = CypherQuery(
+            match=match,
+            return_clause=ret,
+            skip=skip
+        )
+        
+        # Compile the query
+        params = {}
+        cypher, param_index = query.to_cypher(params)
+        
+        # Verify SKIP clause is included
+        assert "MATCH (n:Person)" in cypher
+        assert "RETURN n" in cypher
+        assert "SKIP 10" in cypher
+        assert params == {}
+    
+    def test_query_with_multiple_with_clauses(self):
+        """Test CypherQuery with multiple WITH clauses."""
+        # Create basic components
+        node = NodePattern("n", ["Person"])
+        match = MatchClause(node)
+        
+        # Create multiple WITH clauses
+        with1 = WithClause(["n"])
+        with2 = WithClause([("n.name", "name")])
+        
+        ret = ReturnClause(["name"])
+        
+        # Create query with multiple WITH clauses
+        query = CypherQuery(
+            match=match,
+            with_clauses=[with1, with2],
+            return_clause=ret
+        )
+        
+        # Compile the query
+        params = {}
+        cypher, param_index = query.to_cypher(params)
+        
+        # Verify both WITH clauses are included
+        assert "MATCH (n:Person)" in cypher
+        assert "WITH n" in cypher
+        assert "WITH n.name AS name" in cypher
+        assert "RETURN name" in cypher
+        assert params == {}
+    
+    def test_query_with_skip_and_limit(self):
+        """Test CypherQuery with both SKIP and LIMIT clauses."""
+        # Create basic components
+        node = NodePattern("n", ["Person"])
+        match = MatchClause(node)
+        
+        ret = ReturnClause(["n"])
+        skip = SkipClause(5)
+        limit = LimitClause(10)
+        
+        # Create query with both SKIP and LIMIT
+        query = CypherQuery(
+            match=match,
+            return_clause=ret,
+            skip=skip,
+            limit=limit
+        )
+        
+        # Compile the query
+        params = {}
+        cypher, param_index = query.to_cypher(params)
+        
+        # Verify both SKIP and LIMIT clauses are included (SKIP should come before LIMIT)
+        assert "MATCH (n:Person)" in cypher
+        assert "RETURN n" in cypher
+        assert "SKIP 5" in cypher
+        assert "LIMIT 10" in cypher
+        
+        # Verify order: SKIP should come before LIMIT in the query
+        skip_pos = cypher.index("SKIP 5")
+        limit_pos = cypher.index("LIMIT 10")
+        assert skip_pos < limit_pos
+        
+        assert params == {}
+
+

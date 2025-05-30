@@ -362,20 +362,41 @@ class Neo4jTransaction:
             relationship.__class__, "__type__", relationship.__class__.__name__.upper()
         )
 
-        from_id = getattr(from_model, "id", None)
-        to_id = getattr(to_model, "id", None)
+        # Get primary key fields for matching
+        def get_primary_key_for_matching(model):
+            """Get the primary key field and value from the model for matching.
 
-        if from_id is None or to_id is None:
-            raise ValueError("Models must have an id attribute to create a relationship")
+            Uses the model's __primary_key__ definition.
+            """
+            primary_key = model.__class__.get_primary_key()
+            if primary_key is None:
+                raise ValueError(
+                    f"{model.__class__.__name__} must define a primary key field to "
+                    f"create relationships. Example: email: PrimaryField[str]"
+                )
+
+            value = getattr(model, primary_key, None)
+            if value is None:
+                raise ValueError(
+                    f"{model.__class__.__name__}.{primary_key} is None. "
+                    f"Primary key must have a value to create relationships."
+                )
+
+            return primary_key, value
+
+        # Get primary key fields for both models
+        from_field, from_value = get_primary_key_for_matching(from_model)
+        to_field, to_value = get_primary_key_for_matching(to_model)
 
         # Convert relationship to dictionary
         rel_data = self.repo._model_to_dict(relationship)
 
+        # Build query with dynamic field names
         query = f"""
         MATCH (from:{from_type})
-        WHERE from.id = $from_id
+        WHERE from.{from_field} = $from_value
         MATCH (to:{to_type})
-        WHERE to.id = $to_id
+        WHERE to.{to_field} = $to_value
         CREATE (from)-[r:{rel_type} $data]->(to)
         RETURN r
         """
@@ -386,8 +407,8 @@ class Neo4jTransaction:
         result = self._tx.run(
             query,
             {
-                "from_id": str(from_id) if hasattr(from_id, "__str__") else from_id,
-                "to_id": str(to_id) if hasattr(to_id, "__str__") else to_id,
+                "from_value": str(from_value) if hasattr(from_value, "__str__") else from_value,
+                "to_value": str(to_value) if hasattr(to_value, "__str__") else to_value,
                 "data": rel_data,
             },
         )

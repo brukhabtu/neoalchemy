@@ -37,7 +37,7 @@ from neoalchemy.core.field_registration import (
     initialize,
     register_array_field,
 )
-from neoalchemy.orm.fields import IndexedField, UniqueField
+from neoalchemy.orm.fields import IndexedField, PrimaryField, UniqueField
 from neoalchemy.orm.models import Neo4jModel, Node, Relationship
 from neoalchemy.orm.query import QueryBuilder
 from neoalchemy.orm.repository import Neo4jRepository, Neo4jTransaction
@@ -61,6 +61,7 @@ __all__ = [
     # Custom field types
     "UniqueField",
     "IndexedField",
+    "PrimaryField",
     # Cypher
     "CypherQuery",
     "CypherElement",

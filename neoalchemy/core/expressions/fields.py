@@ -154,10 +154,9 @@ class FieldExpr(LogicalExpr):
             # Combine with AND
             return left_expr.__and__(expr)
 
-        # Only store for chaining if we're in a transaction context
-        if expression_state.is_capturing:
-            # Store this expression for potential chaining
-            expression_state.chain_expr = expr
+        # For equality comparisons, we don't store for chaining since
+        # chained equality doesn't make sense (a == b == c)
+        # This prevents interference with OR expressions
 
         return expr
 

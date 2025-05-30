@@ -42,9 +42,9 @@ class Source(Node):
     __label__: ClassVar[str] = "Source"
 
     id: UUID = Field(default_factory=uuid4)
-    uri: str = UniqueField(description="URI identifier (e.g., 'jira:ABC-123')")
-    scheme: SourceScheme = IndexedField(description="Source type (e.g., 'jira', 'llm')")
-    identifier: str = IndexedField(description="Source identifier part of the URI")
+    uri: UniqueField[str]
+    scheme: IndexedField[SourceScheme]
+    identifier: IndexedField[str]
     name: str = Field(description="Display name for the source")
     description: Optional[str] = Field(default=None)
     url: Optional[str] = Field(default=None)

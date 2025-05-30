@@ -9,6 +9,7 @@ from uuid import UUID
 # Import Neo4j time types
 from neo4j.time import DateTime
 from pydantic import BaseModel, Field, model_validator
+from pydantic._internal._model_construction import ModelMetaclass
 
 # Import expressions from the expressions module
 from neoalchemy.core.expressions import FieldExpr
@@ -17,7 +18,22 @@ from neoalchemy.core.expressions import FieldExpr
 T = TypeVar("T", bound="Neo4jModel")
 
 
-class Neo4jModel(BaseModel):
+class Neo4jModelMeta(ModelMetaclass):
+    """Metaclass for Neo4j models that provides field expression access."""
+
+    def __getattr__(cls, name: str) -> FieldExpr:
+        """Return field expression for unknown attributes.
+
+        This allows Person.name syntax to return a FieldExpr for use in queries,
+        while preserving normal attribute access for defined attributes.
+        """
+        # Only return FieldExpr for fields that are in annotations
+        if hasattr(cls, "__annotations__") and name in cls.__annotations__:
+            return FieldExpr(name)
+        raise AttributeError(f"type object '{cls.__name__}' has no attribute '{name}'")
+
+
+class Neo4jModel(BaseModel, metaclass=Neo4jModelMeta):
     """Base model with Neo4j compatibility for UUID and datetime serialization."""
 
     # Common fields for all Neo4j models
@@ -34,21 +50,6 @@ class Neo4jModel(BaseModel):
 
     # Type identifier attribute name - override in subclasses
     __type_attr__: ClassVar[Optional[str]] = None
-
-    # Class attribute access for field expressions (for type checkers and IDE support)
-    @staticmethod
-    def __class_getattr__(name: str) -> FieldExpr:
-        """Get field expression for class-level attribute access.
-
-        This enables Model.name syntax for Python 3.10+ type checkers.
-
-        Args:
-            name: Attribute name
-
-        Returns:
-            Field expression
-        """
-        return FieldExpr(name)
 
     def model_dump(self, **kwargs):
         """Override to serialize UUIDs as strings."""
@@ -294,6 +295,9 @@ class Node(Neo4jModel):
     # Neo4j label for this node type
     __label__: ClassVar[Optional[str]] = None
 
+    # Primary key field for relationships (optional)
+    __primary_key__: ClassVar[Optional[str]] = None
+
     def __init_subclass__(cls, **kwargs):
         """Register subclasses in the node registry."""
         super().__init_subclass__(**kwargs)
@@ -312,6 +316,27 @@ class Node(Neo4jModel):
         if cls.__label__ is not None:
             return cls.__label__
         return cls.__name__
+
+    @classmethod
+    def get_primary_key(cls) -> Optional[str]:
+        """Get the primary key field for this node type.
+
+        Returns:
+            The primary key field name auto-detected from PrimaryField usage.
+        """
+        # Auto-detect from PrimaryField usage
+        if not hasattr(cls, "_primary_key_cache"):
+            primary_fields = [
+                field_name
+                for field_name, field_info in cls.model_fields.items()
+                if field_info.json_schema_extra
+                and field_info.json_schema_extra.get("primary", False)
+            ]
+
+            # Store the result (first primary field found, or None)
+            cls._primary_key_cache = primary_fields[0] if primary_fields else None
+
+        return cls._primary_key_cache
 
 
 class Relationship(Neo4jModel):

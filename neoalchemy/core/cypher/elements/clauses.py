@@ -98,7 +98,11 @@ class WhereClause(CypherClause):
 
             condition_parts.append(part)
 
-        return f"{K.WHERE} {' AND '.join(condition_parts)}", param_index
+        # If there's only one condition, don't add extra AND logic
+        if len(condition_parts) == 1:
+            return f"{K.WHERE} {condition_parts[0]}", param_index
+        else:
+            return f"{K.WHERE} {' AND '.join(condition_parts)}", param_index
 
 
 class ReturnClause(CypherClause):

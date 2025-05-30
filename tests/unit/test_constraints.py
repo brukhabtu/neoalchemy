@@ -10,6 +10,7 @@ from typing import Optional
 from pydantic import Field
 
 from neoalchemy import initialize
+from neoalchemy.orm.fields import IndexedField, UniqueField
 from neoalchemy.orm.models import Node, Relationship
 
 
@@ -24,9 +25,9 @@ class TestFieldConstraints:
         class Person(Node):
             """Person model with unique constraint on email."""
 
-            name: str = Field(index=True)
-            email: str = Field(unique=True)
-            ssn: Optional[str] = Field(default=None, unique=True)
+            name: "IndexedField[str]"  # type: ignore
+            email: "UniqueField[str]"  # type: ignore
+            ssn: "UniqueField[str]" = Field(default=None)  # type: ignore
 
         # Test constraints collection
         unique_fields = Person.get_constraints()
@@ -47,8 +48,8 @@ class TestFieldConstraints:
 
             __label__ = "Client"
 
-            account_id: str = Field(unique=True)
-            name: str = Field(index=True)
+            account_id: "UniqueField[str]"  # type: ignore
+            name: "IndexedField[str]"  # type: ignore
 
         # Test constraints collection
         unique_fields = Customer.get_constraints()
@@ -63,10 +64,10 @@ class TestFieldConstraints:
         class Product(Node):
             """Product model with multiple constraints."""
 
-            sku: str = Field(unique=True)
-            upc: str = Field(unique=True)
-            name: str = Field(index=True)
-            price: float = Field(index=True)
+            sku: "UniqueField[str]"  # type: ignore
+            upc: "UniqueField[str]"  # type: ignore
+            name: "IndexedField[str]"  # type: ignore
+            price: "IndexedField[float]"  # type: ignore
 
         # Test constraints collection
         unique_fields = Product.get_constraints()
@@ -85,8 +86,8 @@ class TestFieldConstraints:
         class TRANSACTION(Relationship):
             """Transaction relationship with constraints."""
 
-            transaction_id: str = Field(unique=True)
-            amount: float = Field(index=True)
+            transaction_id: "UniqueField[str]"  # type: ignore
+            amount: "IndexedField[float]"  # type: ignore
 
         # Test constraints collection
         unique_fields = TRANSACTION.get_constraints()
