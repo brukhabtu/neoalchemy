@@ -14,7 +14,7 @@ env:
 jobs:
   # Step 1: Build and push Docker image
   build-image:
-    name: Build Docker Image
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -71,7 +71,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build and optionally push Docker image
+    - name: Build and push Docker image
       id: build
       uses: docker/build-push-action@v5
       with:
@@ -135,17 +135,6 @@ jobs:
         docker run --rm -v $(pwd):/workspace -w /workspace \
           ${{ env.IMAGE_NAME }} \
           python -m pytest tests/unit/ -v --tb=short --cov=neoalchemy --cov-report=xml
-
-    - name: Verify test performance
-      run: |
-        echo "⏱️  Measuring unit test performance..."
-        START_TIME=$(date +%s%N)
-        docker run --rm -v $(pwd):/workspace -w /workspace \
-          ${{ env.IMAGE_NAME }} \
-          python -m pytest tests/unit/ --tb=no -q
-        END_TIME=$(date +%s%N)
-        DURATION_MS=$(( (END_TIME - START_TIME) / 1000000 ))
-        echo "✅ Unit tests completed in ${DURATION_MS}ms"
 
     - name: Upload coverage to Codecov
       if: github.event_name != 'pull_request'
@@ -287,7 +276,7 @@ jobs:
           ${{ env.IMAGE_NAME }} \
           python -m pytest tests/e2e/ -v --tb=short
 
-  # Code quality checks (runs in parallel)
+  # Code quality checks (runs in parallel with tests)
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
