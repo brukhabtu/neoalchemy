@@ -323,7 +323,7 @@ jobs:
         echo "🔍 Running code linting in Docker container..."
         docker run --rm -v $(pwd):/workspace -w /workspace \
           ${{ env.IMAGE_NAME }} \
-          ruff check neoalchemy/
+          ruff check neoalchemy/ --no-cache
 
     - name: Run type checking
       run: |
@@ -337,7 +337,7 @@ jobs:
         echo "🔍 Checking code formatting in Docker container..."
         docker run --rm -v $(pwd):/workspace -w /workspace \
           ${{ env.IMAGE_NAME }} \
-          ruff format --check neoalchemy/
+          ruff format --check neoalchemy/ --no-cache
 
   # Summary job
   ci-summary:

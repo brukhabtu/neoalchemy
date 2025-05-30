@@ -32,8 +32,10 @@ RUN uv --version
 # Set up working directory
 WORKDIR /app
 
-# Create default project structure
-RUN mkdir -p /app/src
+# Create default project structure and cache directories with proper permissions
+RUN mkdir -p /app/src /app/.pytest_cache /app/.ruff_cache /app/.coverage_cache \
+    && chown -R devuser:devuser /app/.pytest_cache /app/.ruff_cache /app/.coverage_cache \
+    && chmod 755 /app/.pytest_cache /app/.ruff_cache /app/.coverage_cache
 
 # Create virtual environment
 ENV VIRTUAL_ENV=/app/.venv

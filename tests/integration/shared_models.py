@@ -11,7 +11,7 @@ class Person(Node):
     id: str = Field(default="")
     name: str
     age: int
-    email: PrimaryField(str, default="")  # Primary key automatically unique
+    email: PrimaryField[str] = Field(default="")  # Primary key automatically unique
     tags: list[str] = Field(default_factory=list)
     active: bool = Field(default=True)
 
@@ -21,7 +21,7 @@ class Company(Node):
     __label__ = "Company"
     
     id: str = Field(default="")
-    name: PrimaryField(str)  # Primary key (automatically indexed)
+    name: PrimaryField[str] = Field()  # Primary key (automatically indexed)
     founded: int
     revenue: float = Field(default=0.0)
     industry: str = Field(default="")

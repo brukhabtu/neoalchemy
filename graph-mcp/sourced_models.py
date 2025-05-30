@@ -51,14 +51,14 @@ class SERVICE(str, Enum):
 class Person(SourcedNode):
     """Person node representing an individual with source tracking."""
 
-    name: IndexedField(str, description="Person's full name")
-    email: PrimaryField(str, description="Email address (unique identifier)")
-    title: IndexedField(str, default=None, description="Job title")
+    name: IndexedField[str] = Field(description="Person's full name")
+    email: PrimaryField[str] = Field(description="Email address (unique identifier)")
+    title: IndexedField[str] = Field(default=None, description="Job title")
     phone: Optional[str] = Field(default=None, description="Contact phone number")
     hire_date: Optional[Date] = Field(default=None, description="Date of hire")
-    department : IndexedField(str, default="", description="Department name")
-    primary_location : IndexedField(str, default="", description="Primary office location")
-    employee_id : UniqueField(str, default=None, description="Employee ID number")
+    department : IndexedField[str] = Field(default="", description="Department name")
+    primary_location : IndexedField[str] = Field(default="", description="Primary office location")
+    employee_id : UniqueField[str] = Field(default=None, description="Employee ID number")
 
     # Explicitly set the label
     __label__: ClassVar[str] = "Person"
@@ -71,8 +71,8 @@ class Account(SourcedNode):
     This is enforced at the application level when creating accounts.
     """
 
-    username : IndexedField(str, description="Username on the service")
-    email : IndexedField(str, description="Email associated with the account")
+    username : IndexedField[str] = Field(description="Username on the service")
+    email : IndexedField[str] = Field(description="Email associated with the account")
     service: SERVICE = Field(description="Service type (e.g., JIRA, Slack)")
     person_id: UUID = Field(description="Reference to the associated Person")
     display_name: str = Field(default="", description="Display name on the service")
@@ -82,7 +82,7 @@ class Account(SourcedNode):
         description="Last activity timestamp",
     )
     profile_url: Optional[str] = Field(default=None, description="URL to user profile")
-    account_id : UniqueField(str, default=None, description="Service-specific ID (unique identifier)")
+    account_id : UniqueField[str] = Field(default=None, description="Service-specific ID (unique identifier)")
     is_primary: bool = Field(default=False, description="Whether this is the primary account")
 
     # Explicitly set the label
@@ -99,9 +99,9 @@ class Account(SourcedNode):
 class Team(SourcedNode):
     """Team node representing a group of people working together with source tracking."""
 
-    name : UniqueField(str, description="Team name (unique identifier)")
+    name : UniqueField[str] = Field(description="Team name (unique identifier)")
     description: Optional[str] = Field(default=None, description="Team description")
-    department : IndexedField(str, default=None, description="Department name")
+    department : IndexedField[str] = Field(default=None, description="Department name")
     formation_date: Optional[Date] = Field(default=None, description="Date when team was formed")
 
     # Explicitly set the label
@@ -111,12 +111,12 @@ class Team(SourcedNode):
 class Project(SourcedNode):
     """Project node representing a business initiative with source tracking."""
 
-    name : UniqueField(str, description="Project name (unique identifier)")
+    name : UniqueField[str] = Field(description="Project name (unique identifier)")
     description: Optional[str] = Field(default=None, description="Project description")
     start_date: Optional[Date] = Field(default=None, description="Project start date")
     end_date: Optional[Date] = Field(default=None, description="Project end date")
     budget: Optional[float] = Field(default=None, description="Project budget")
-    status : IndexedField(str, default="planning", description="Current project status")
+    status : IndexedField[str] = Field(default="planning", description="Current project status")
 
     # Explicitly set the label
     __label__: ClassVar[str] = "Project"
@@ -125,9 +125,9 @@ class Project(SourcedNode):
 class ConfluenceEntity(SourcedNode):
     """Base model for all Confluence entities."""
 
-    confluence_id : UniqueField(str, description="Confluence's internal ID (unique identifier)")
+    confluence_id : UniqueField[str] = Field(description="Confluence's internal ID (unique identifier)")
     url: str = Field(description="URL to the entity")
-    creator_username : IndexedField(str, description="Username of the creator")
+    creator_username : IndexedField[str] = Field(description="Username of the creator")
     created_at: DateTime = Field(
         default_factory=lambda: DateTime.from_native(datetime.now()),
         description="Creation timestamp",
@@ -149,22 +149,22 @@ class ConfluenceEntity(SourcedNode):
 class ConfluenceSpace(ConfluenceEntity):
     """Confluence space model."""
 
-    key : UniqueField(str, description="Confluence space key (unique identifier)")
-    name : IndexedField(str, description="Space name")
+    key : UniqueField[str] = Field(description="Confluence space key (unique identifier)")
+    name : IndexedField[str] = Field(description="Space name")
     description: str = Field(default="", description="Space description")
-    type : IndexedField(str, default="global", description="Space type (global, personal, etc.)")
+    type : IndexedField[str] = Field(default="global", description="Space type (global, personal, etc.)")
     is_archived: bool = Field(default=False, description="Whether the space is archived")
 
 
 class ConfluencePage(ConfluenceEntity):
     """Confluence page/document model."""
 
-    title : IndexedField(str, description="Page title")
+    title : IndexedField[str] = Field(description="Page title")
     content: str = Field(description="Page content")
-    space_key : IndexedField(str, description="Key of the space containing this page")
+    space_key : IndexedField[str] = Field(description="Key of the space containing this page")
     version: int = Field(default=1, description="Page version number")
-    parent_id : IndexedField(str, default=None, description="Parent page ID")
-    last_modifier_username : IndexedField(str, default=None, description="Username of last modifier")
+    parent_id : IndexedField[str] = Field(default=None, description="Parent page ID")
+    last_modifier_username : IndexedField[str] = Field(default=None, description="Username of last modifier")
     tags: list[str] = Field(default=[], description="Page tags")
     is_draft: bool = Field(default=False, description="Whether this is a draft")
 
@@ -173,17 +173,17 @@ class ConfluenceComment(ConfluenceEntity):
     """Comment on a Confluence page."""
 
     content: str = Field(description="Comment content")
-    page_id : IndexedField(str, description="ID of the page being commented on")
-    parent_comment_id : IndexedField(str, default=None, description="Parent comment ID")
+    page_id : IndexedField[str] = Field(description="ID of the page being commented on")
+    parent_comment_id : IndexedField[str] = Field(default=None, description="Parent comment ID")
 
 
 class ConfluenceAttachment(ConfluenceEntity):
     """File attached to a Confluence page."""
 
-    filename : IndexedField(str, description="Attachment filename")
-    media_type : IndexedField(str, description="MIME type")
+    filename : IndexedField[str] = Field(description="Attachment filename")
+    media_type : IndexedField[str] = Field(description="MIME type")
     file_size: int = Field(description="File size in bytes")
-    page_id : IndexedField(str, description="ID of the page with the attachment")
+    page_id : IndexedField[str] = Field(description="ID of the page with the attachment")
     download_url: str = Field(description="URL to download the attachment")
 
 
@@ -191,7 +191,7 @@ class ConfluenceAttachment(ConfluenceEntity):
 class WORKS_ON(SourcedRelationship):
     """Relationship between Person and Project with source tracking."""
 
-    role : IndexedField(str, description="Role on the project")
+    role : IndexedField[str] = Field(description="Role on the project")
     joined_date: Optional[Date] = Field(default=None, description="Date joined the project")
     allocation_percentage: float = Field(default=100.0, description="Percentage of time allocated")
 
@@ -202,7 +202,7 @@ class WORKS_ON(SourcedRelationship):
 class BELONGS_TO(SourcedRelationship):
     """Relationship between Person and Team with source tracking."""
 
-    role : IndexedField(str, default=None, description="Role in the team")
+    role : IndexedField[str] = Field(default=None, description="Role in the team")
     joined_date: Optional[Date] = Field(default=None, description="Date joined the team")
 
     # Explicitly set the relationship type
@@ -249,7 +249,7 @@ class MODIFIED(SourcedRelationship):
         default_factory=lambda: DateTime.from_native(datetime.now()),
         description="Modification timestamp",
     )
-    version : IndexedField(int, default=1, description="Version number")
+    version : IndexedField[int] = Field(default=1, description="Version number")
 
     # Explicitly set the relationship type
     __type__: ClassVar[str] = "MODIFIED"

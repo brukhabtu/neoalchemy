@@ -18,16 +18,16 @@ class ConstrainedPerson(Node):
     """Person model with constraints for testing."""
 
     name: str = Field(description="Person's name")
-    email: UniqueField(str, description="Email address")
-    department: IndexedField(str, default="")
+    email: UniqueField[str] = Field(description="Email address")
+    department: IndexedField[str] = Field(default="")
 
 
 class ConstrainedProduct(Node):
     """Product model with constraints for testing."""
 
-    sku: UniqueField(str, description="Stock keeping unit")
-    name: IndexedField(str, description="Product name")
-    price: IndexedField(float, description="Product price")
+    sku: UniqueField[str] = Field(description="Stock keeping unit")
+    name: IndexedField[str] = Field(description="Product name")
+    price: IndexedField[float] = Field(description="Product price")
 
 
 @pytest.mark.e2e
