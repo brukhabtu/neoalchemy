@@ -40,8 +40,12 @@ ENV VIRTUAL_ENV=/app/.venv
 RUN uv venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# We'll use the user's existing pyproject.toml and uv.lock
+# Copy source code and dependency files
 COPY --chown=devuser:devuser pyproject.toml uv.lock /app/
+COPY --chown=devuser:devuser neoalchemy/ /app/neoalchemy/
+COPY --chown=devuser:devuser tests/ /app/tests/
+COPY --chown=devuser:devuser README.md /app/
+COPY --chown=devuser:devuser graph-mcp/ /app/graph-mcp/
 
 # Install Python dependencies using uv with the lock file into the venv
 RUN uv pip install -e ".[dev]" 

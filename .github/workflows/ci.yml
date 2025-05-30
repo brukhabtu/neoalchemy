@@ -3,6 +3,7 @@ name: Continuous Integration
 on:
   push:
     branches: [ main, develop ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, develop ]
 
@@ -11,16 +12,16 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Fast unit tests in Docker - runs first for quick feedback
-  unit-tests:
-    name: Unit Tests (Docker)
+  # Step 1: Build and push Docker image
+  build-image:
+    name: Build Docker Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     outputs:
-      image-tags: ${{ steps.meta.outputs.tags }}
+      image-tag: ${{ steps.image-tag.outputs.tag }}
       image-digest: ${{ steps.build.outputs.digest }}
 
     steps:
@@ -35,114 +36,129 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Determine image tag
+      id: image-tag
+      run: |
+        if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          # For release tags (v1.0.0), use the tag name
+          TAG="${{ github.ref_name }}"
+        elif [[ "${{ github.ref_name }}" == "main" ]]; then
+          # For main branch, use 'latest'
+          TAG="latest"
+        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          # For pull requests, use PR number
+          TAG="pr-${{ github.event.number }}"
+        else
+          # For other branches, use branch name
+          TAG="${{ github.ref_name }}"
+        fi
+        
+        # Sanitize tag name (replace invalid characters)
+        TAG=$(echo "$TAG" | sed 's/[^a-zA-Z0-9._-]/-/g')
+        
+        echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "📦 Image will be tagged as: ${TAG}"
+
     - name: Extract metadata for Docker
       id: meta
       uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha
-          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=${{ steps.image-tag.outputs.tag }}
+          type=sha,prefix={{branch}}-
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build Docker image
+    - name: Build and optionally push Docker image
       id: build
       uses: docker/build-push-action@v5
       with:
         context: .
-        load: true
-        tags: |
-          neoalchemy-unit-tests:test
-          ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Run unit tests
-      run: |
-        echo "🧪 Running unit tests in Docker container..."
-        docker run --rm neoalchemy-unit-tests:test
-
-    - name: Verify test performance
-      run: |
-        echo "⏱️  Measuring unit test performance..."
-        START_TIME=$(date +%s%N)
-        docker run --rm neoalchemy-unit-tests:test python -m pytest tests/unit/ --tb=no -q
-        END_TIME=$(date +%s%N)
-        DURATION_MS=$(( (END_TIME - START_TIME) / 1000000 ))
-        echo "✅ Unit tests completed in ${DURATION_MS}ms (includes Docker startup overhead)"
-        echo "   The isolated unit tests run fast without database dependencies"
-
-    - name: Verify test isolation
-      run: |
-        echo "🔒 Verifying unit test isolation..."
-        docker run --rm neoalchemy-unit-tests:test python -c "
-        # Verify isolation is working
-        print('Testing unit test isolation...')
-        from tests.unit.conftest import mock_driver
-        print('✅ Mock fixtures are available')
-        print('✅ Unit test isolation verified')
-        "
-
-    - name: Push Docker image
-      if: github.event_name != 'pull_request'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
+        file: .devcontainer/Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        outputs: ${{ github.event_name == 'pull_request' && 'type=docker,dest=/tmp/image.tar' || 'type=registry' }}
 
-  # Code quality checks
-  code-quality:
-    name: Code Quality
+    - name: Load image for PR testing
+      if: github.event_name == 'pull_request'
+      run: |
+        docker load -i /tmp/image.tar
+        echo "🐳 Docker image loaded for PR testing"
+
+    - name: Display build summary
+      run: |
+        echo "🎉 Docker image build completed!"
+        echo "📦 Image tag: ${{ steps.image-tag.outputs.tag }}"
+        echo "🔗 Full image name: ${{ steps.meta.outputs.tags }}" | head -1
+        echo "📄 Digest: ${{ steps.build.outputs.digest }}"
+
+  # Step 2: Run tests in parallel using the built image
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
+    needs: build-image
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
       with:
-        python-version: '3.12'
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v3
-
-    - name: Create virtual environment
-      run: uv venv
-
-    - name: Install dependencies
-      run: uv pip install -e ".[dev]"
-
-    - name: Run linting
+    - name: Prepare Docker image
       run: |
-        echo "🔍 Running code linting..."
-        uv run ruff check neoalchemy/
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "📥 Building image locally for PR testing..."
+          docker build -f .devcontainer/Dockerfile -t test-image .
+          IMAGE_NAME="test-image"
+        else
+          echo "📥 Pulling built image from registry..."
+          IMAGE_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-image.outputs.image-tag }}"
+          docker pull "$IMAGE_NAME"
+        fi
+        echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
-    - name: Run type checking
+    - name: Run unit tests
       run: |
-        echo "🔍 Skipping type checking for now - focusing on unit test isolation..."
-        # TODO: Re-enable after addressing all type annotations
-        # uv run mypy neoalchemy/
+        echo "🧪 Running unit tests in Docker container..."
+        docker run --rm -v $(pwd):/workspace -w /workspace \
+          ${{ env.IMAGE_NAME }} \
+          python -m pytest tests/unit/ -v --tb=short --cov=neoalchemy --cov-report=xml
 
-    - name: Run code formatting check
+    - name: Verify test performance
       run: |
-        echo "🔍 Checking code formatting..."
-        uv run ruff format --check neoalchemy/
+        echo "⏱️  Measuring unit test performance..."
+        START_TIME=$(date +%s%N)
+        docker run --rm -v $(pwd):/workspace -w /workspace \
+          ${{ env.IMAGE_NAME }} \
+          python -m pytest tests/unit/ --tb=no -q
+        END_TIME=$(date +%s%N)
+        DURATION_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+        echo "✅ Unit tests completed in ${DURATION_MS}ms"
 
-  # Integration tests with real database
+    - name: Upload coverage to Codecov
+      if: github.event_name != 'pull_request'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unit-tests
+        name: unit-tests-coverage
+
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [unit-tests, code-quality]
+    needs: build-image
     
     services:
       neo4j:
@@ -163,19 +179,26 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
       with:
-        python-version: '3.12'
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v3
-
-    - name: Create virtual environment
-      run: uv venv
-
-    - name: Install dependencies
-      run: uv pip install -e ".[dev]"
+    - name: Prepare Docker image
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "📥 Building image locally for PR testing..."
+          docker build -f .devcontainer/Dockerfile -t test-image .
+          IMAGE_NAME="test-image"
+        else
+          echo "📥 Pulling built image from registry..."
+          IMAGE_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-image.outputs.image-tag }}"
+          docker pull "$IMAGE_NAME"
+        fi
+        echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
     - name: Wait for Neo4j
       run: |
@@ -189,14 +212,138 @@ jobs:
         NEO4J_USER: neo4j
         NEO4J_PASSWORD: password
       run: |
-        echo "🧪 Running integration tests..."
-        uv run python -m pytest tests/e2e/ -v --tb=short
+        echo "🧪 Running integration tests in Docker container..."
+        docker run --rm -v $(pwd):/workspace -w /workspace \
+          --network host \
+          -e NEO4J_URI=$NEO4J_URI \
+          -e NEO4J_USER=$NEO4J_USER \
+          -e NEO4J_PASSWORD=$NEO4J_PASSWORD \
+          ${{ env.IMAGE_NAME }} \
+          python -m pytest tests/integration/ -v --tb=short
+
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    needs: build-image
+    
+    services:
+      neo4j:
+        image: neo4j:4.4
+        env:
+          NEO4J_AUTH: neo4j/password
+          NEO4J_ACCEPT_LICENSE_AGREEMENT: yes
+        ports:
+          - 7474:7474
+          - 7687:7687
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Prepare Docker image
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "📥 Building image locally for PR testing..."
+          docker build -f .devcontainer/Dockerfile -t test-image .
+          IMAGE_NAME="test-image"
+        else
+          echo "📥 Pulling built image from registry..."
+          IMAGE_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-image.outputs.image-tag }}"
+          docker pull "$IMAGE_NAME"
+        fi
+        echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+    - name: Wait for Neo4j
+      run: |
+        echo "🔄 Waiting for Neo4j to be ready..."
+        timeout 60 bash -c 'until curl -f http://localhost:7474; do sleep 2; done'
+        echo "✅ Neo4j is ready!"
+
+    - name: Run E2E tests
+      env:
+        NEO4J_URI: bolt://localhost:7687
+        NEO4J_USER: neo4j
+        NEO4J_PASSWORD: password
+      run: |
+        echo "🧪 Running E2E tests in Docker container..."
+        docker run --rm -v $(pwd):/workspace -w /workspace \
+          --network host \
+          -e NEO4J_URI=$NEO4J_URI \
+          -e NEO4J_USER=$NEO4J_USER \
+          -e NEO4J_PASSWORD=$NEO4J_PASSWORD \
+          ${{ env.IMAGE_NAME }} \
+          python -m pytest tests/e2e/ -v --tb=short
+
+  # Code quality checks (runs in parallel)
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    needs: build-image
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Prepare Docker image
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "📥 Building image locally for PR testing..."
+          docker build -f .devcontainer/Dockerfile -t test-image .
+          IMAGE_NAME="test-image"
+        else
+          echo "📥 Pulling built image from registry..."
+          IMAGE_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-image.outputs.image-tag }}"
+          docker pull "$IMAGE_NAME"
+        fi
+        echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+    - name: Run linting
+      run: |
+        echo "🔍 Running code linting in Docker container..."
+        docker run --rm -v $(pwd):/workspace -w /workspace \
+          ${{ env.IMAGE_NAME }} \
+          ruff check neoalchemy/
+
+    - name: Run type checking
+      run: |
+        echo "🔍 Running type checking in Docker container..."
+        docker run --rm -v $(pwd):/workspace -w /workspace \
+          ${{ env.IMAGE_NAME }} \
+          mypy neoalchemy/ --ignore-missing-imports
+
+    - name: Run code formatting check
+      run: |
+        echo "🔍 Checking code formatting in Docker container..."
+        docker run --rm -v $(pwd):/workspace -w /workspace \
+          ${{ env.IMAGE_NAME }} \
+          ruff format --check neoalchemy/
 
   # Summary job
   ci-summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [unit-tests, code-quality, integration-tests]
+    needs: [build-image, unit-tests, integration-tests, e2e-tests, code-quality]
     if: always()
 
     steps:
@@ -204,17 +351,21 @@ jobs:
       run: |
         echo "📊 CI Pipeline Summary:"
         echo "======================"
+        echo "Docker Build: ${{ needs.build-image.result }}"
         echo "Unit Tests: ${{ needs.unit-tests.result }}"
-        echo "Code Quality: ${{ needs.code-quality.result }}"
         echo "Integration Tests: ${{ needs.integration-tests.result }}"
+        echo "E2E Tests: ${{ needs.e2e-tests.result }}"
+        echo "Code Quality: ${{ needs.code-quality.result }}"
         echo ""
         
-        if [[ "${{ needs.unit-tests.result }}" == "success" && 
-              "${{ needs.code-quality.result }}" == "success" && 
-              "${{ needs.integration-tests.result }}" == "success" ]]; then
+        if [[ "${{ needs.build-image.result }}" == "success" && 
+              "${{ needs.unit-tests.result }}" == "success" && 
+              "${{ needs.integration-tests.result }}" == "success" && 
+              "${{ needs.e2e-tests.result }}" == "success" && 
+              "${{ needs.code-quality.result }}" == "success" ]]; then
           echo "✅ All checks passed! Ready to merge."
           echo "🐳 Docker image available at:"
-          echo "${{ needs.unit-tests.outputs.image-tags }}" | head -1
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-image.outputs.image-tag }}"
         else
           echo "❌ Some checks failed. Please review the results above."
           exit 1
