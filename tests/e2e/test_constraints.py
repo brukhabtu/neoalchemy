@@ -10,6 +10,7 @@ from pydantic import Field
 
 from neoalchemy import initialize
 from neoalchemy.constraints import setup_constraints
+from neoalchemy.orm.fields import IndexedField, UniqueField
 from neoalchemy.orm.models import Node
 
 
@@ -17,16 +18,16 @@ class ConstrainedPerson(Node):
     """Person model with constraints for testing."""
 
     name: str = Field(description="Person's name")
-    email: str = Field(unique=True, description="Email address")
-    department: str = Field(default="", index=True)
+    email: UniqueField(str, description="Email address")
+    department: IndexedField(str, default="")
 
 
 class ConstrainedProduct(Node):
     """Product model with constraints for testing."""
 
-    sku: str = Field(unique=True, description="Stock keeping unit")
-    name: str = Field(index=True, description="Product name")
-    price: float = Field(index=True, description="Product price")
+    sku: UniqueField(str, description="Stock keeping unit")
+    name: IndexedField(str, description="Product name")
+    price: IndexedField(float, description="Product price")
 
 
 @pytest.mark.e2e

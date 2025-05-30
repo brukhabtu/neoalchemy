@@ -29,12 +29,14 @@ Examples:
 ### 2. Source Node Model
 
 ```python
+from neoalchemy.orm.fields import UniqueField, IndexedField
+
 class Source(Node):
     """Node representing a data source in Neo4j."""
     id: UUID = Field(default_factory=uuid4)
-    uri: str = UniqueField(description="URI identifier (e.g., 'jira:ABC-123')")
-    scheme: SourceScheme = IndexedField(description="Source type (e.g., 'jira', 'llm')")
-    identifier: str = IndexedField(description="Source identifier part of the URI")
+    uri: UniqueField(str, description="URI identifier (e.g., 'jira:ABC-123')")
+    scheme: IndexedField(SourceScheme, description="Source type (e.g., 'jira', 'llm')")
+    identifier: IndexedField(str, description="Source identifier part of the URI")
     name: str = Field(description="Display name for the source")
     description: Optional[str] = Field(default=None)
     url: Optional[str] = Field(default=None)

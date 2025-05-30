@@ -13,6 +13,9 @@ This repository contains two main components:
 
 Both components share the same Neo4j database and work together to provide both programmatic access (via NeoAlchemy) and AI agent access (via MCP) to graph data.
 
+## Project Infrastructure Memories
+- The dockerfile will always be in the devcontainer repo - lets keep it there
+
 ## Testing & Development
 - Install dev dependencies: `uv pip install -e ".[dev]"`
 - Run all tests: `python -m pytest`
@@ -93,7 +96,7 @@ NeoAlchemy follows a layered architecture inspired by SQLAlchemy:
 - **Models** (`models.py`): Base classes `Neo4jModel`, `Node`, `Relationship` with Pydantic integration
 - **Repository** (`repository.py`): Transaction-based database interface `Neo4jRepository` and `Neo4jTransaction`
 - **Query Builder** (`query.py`): High-level query building API `QueryBuilder` 
-- **Fields** (`fields.py`): Custom field types `UniqueField`, `IndexedField`
+- **Fields** (`fields.py`): Custom field types `PrimaryField`, `UniqueField`, `IndexedField`
 - **Constraints** (`constraints.py`): Database constraint management
 
 ### Key Patterns
@@ -119,7 +122,7 @@ ORM Layer (`neoalchemy/orm/`):
 - **Models** (`models.py`): Base classes `Neo4jModel`, `Node`, `Relationship` with Pydantic integration
 - **Repository** (`repository.py`): Transaction-based database interface `Neo4jRepository` and `Neo4jTransaction`
 - **Query Builder** (`query.py`): High-level query building API `QueryBuilder` 
-- **Fields** (`fields.py`): Custom field types `UniqueField`, `IndexedField`
+- **Fields** (`fields.py`): Custom field types `PrimaryField`, `UniqueField`, `IndexedField`
 - **Constraints** (`constraints.py`): Database constraint management
 
 ### **MCP Server** (`graph-mcp/`)

@@ -1,6 +1,7 @@
 """Shared test models for integration tests."""
 from pydantic import Field
 from neoalchemy.orm.models import Node, Relationship
+from neoalchemy.orm.fields import PrimaryField
 
 
 class Person(Node):
@@ -10,7 +11,7 @@ class Person(Node):
     id: str = Field(default="")
     name: str
     age: int
-    email: str = Field(default="", json_schema_extra={"unique": True})
+    email: PrimaryField(str, default="")  # Primary key automatically unique
     tags: list[str] = Field(default_factory=list)
     active: bool = Field(default=True)
 
@@ -20,7 +21,7 @@ class Company(Node):
     __label__ = "Company"
     
     id: str = Field(default="")
-    name: str = Field(..., json_schema_extra={"unique": True, "index": True})
+    name: PrimaryField(str)  # Primary key (automatically indexed)
     founded: int
     revenue: float = Field(default=0.0)
     industry: str = Field(default="")

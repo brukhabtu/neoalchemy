@@ -23,17 +23,17 @@ from neoalchemy.orm.fields import UniqueField, IndexedField
 # Test models
 class SourcedItem(Node):
     """Test node with sources for e2e testing."""
-    sku: str = UniqueField(description="Stock keeping unit")
+    sku: UniqueField(str, description="Stock keeping unit")
     name: str = Field(description="Item name")
-    category: str = IndexedField(description="Item category")
+    category: IndexedField(str, description="Item category")
     tags: List[str] = Field(default_factory=list)
 
 
 class SourcedPerson(Node):
     """Test person node with sources for e2e testing."""
-    email: str = UniqueField(description="Email address")
+    email: UniqueField(str, description="Email address")
     name: str = Field(description="Person name")
-    department: str = IndexedField(description="Department")
+    department: IndexedField(str, description="Department")
 
 
 class OWNS(Relationship):

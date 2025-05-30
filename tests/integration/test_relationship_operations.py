@@ -61,8 +61,8 @@ class TestRelationshipOperations:
             assert "MATCH" in rel_query
             assert "CREATE" in rel_query
             assert "WORKS_AT" in rel_query
-            assert "from.id = $from_id" in rel_query
-            assert "to.id = $to_id" in rel_query
+            assert "from.email = $from_value" in rel_query
+            assert "to.name = $to_value" in rel_query
     
     def test_query_with_relationship_pattern(self, neo4j_transaction):
         """Test querying with relationship patterns."""
