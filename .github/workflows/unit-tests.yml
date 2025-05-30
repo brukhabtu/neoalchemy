@@ -50,6 +50,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
+        file: .devcontainer/Dockerfile
         load: true
         tags: neoalchemy-unit-tests:test
         cache-from: type=gha
@@ -90,6 +91,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
+        file: .devcontainer/Dockerfile
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
