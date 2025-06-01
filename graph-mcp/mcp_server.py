@@ -18,8 +18,8 @@ from neo4j.time import Date, DateTime
 from datetime import datetime
 
 # Import our custom models 
-# Using sourced models which require source tracking
-from sourced_models import (
+# Using models which require source tracking
+from models import (
     Person, Project, Team, Account, 
     ConfluenceAttachment, ConfluenceComment, ConfluenceEntity, ConfluencePage, ConfluenceSpace,
     WORKS_ON, BELONGS_TO, MANAGES, HAS_ACCOUNT, AUTHORED, MODIFIED, PARENT_OF, 
