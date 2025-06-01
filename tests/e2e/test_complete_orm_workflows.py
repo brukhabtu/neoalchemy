@@ -3,8 +3,16 @@
 These tests verify complete user workflows from schema initialization
 through data operations to complex querying and data export.
 """
+import os
 import pytest
 from .shared_models import Person, Company, Product, WorksAt, Uses, Project, WorksOn
+
+# Test configuration constants
+WORKFLOW_EMPLOYEES_COUNT = 10
+BULK_COMPANIES_COUNT = int(os.getenv("E2E_BULK_COMPANIES", "20"))
+BULK_PEOPLE_COUNT = int(os.getenv("E2E_BULK_PEOPLE", "100"))
+MAX_WORKFLOW_TIME = 30.0  # seconds
+MAX_BULK_TIME = 15.0  # seconds
 
 
 @pytest.mark.e2e
@@ -84,7 +92,7 @@ class TestCompleteORMWorkflows:
             
             # Create people with realistic data
             people = []
-            for i in range(10):
+            for i in range(WORKFLOW_EMPLOYEES_COUNT):
                 person = tx.create(Person(
                     email=f"employee{i:02d}@techcorp.com",
                     name=f"Employee {i:02d}",
@@ -130,14 +138,14 @@ class TestCompleteORMWorkflows:
                 Person.department == "Engineering"
             ).find()
             
-            assert len(senior_ai_engineers) >= 2
+            assert len(senior_ai_engineers) >= 2, f"Expected ≥2 senior AI engineers, got {len(senior_ai_engineers)}"
             
             # Query 2: Find high-value product users
             premium_users = tx.query(Person).where(
                 Person.score > 90
             ).find()
             
-            assert len(premium_users) >= 3
+            assert len(premium_users) >= 3, f"Expected ≥3 premium users (score>90), got {len(premium_users)}"
             
             # Query 3: Complex relationship query - people working on projects
             # This would be expanded with proper relationship traversal
@@ -202,7 +210,7 @@ class TestCompleteORMWorkflows:
         performance_timer.stop()
         
         # Verify performance is reasonable for E2E test
-        assert performance_timer.duration < 30.0, f"Workflow took {performance_timer.duration:.2f}s, too slow"
+        assert performance_timer.duration < MAX_WORKFLOW_TIME, f"Workflow took {performance_timer.duration:.2f}s, expected <{MAX_WORKFLOW_TIME}s"
         
         print(f"Complete workflow executed in {performance_timer.duration:.2f} seconds")
 
@@ -296,7 +304,7 @@ class TestCompleteORMWorkflows:
         with repo.transaction() as tx:
             # Create many entities in single transaction
             companies = []
-            for i in range(20):
+            for i in range(BULK_COMPANIES_COUNT):
                 company = tx.create(Company(
                     name=f"BulkCompany_{i:03d}",
                     founded=2000 + (i % 24),
@@ -307,7 +315,7 @@ class TestCompleteORMWorkflows:
             
             # Create many people
             people = []
-            for i in range(100):
+            for i in range(BULK_PEOPLE_COUNT):
                 person = tx.create(Person(
                     email=f"bulk_user_{i:04d}@company.com",
                     name=f"Bulk User {i:04d}",
@@ -329,7 +337,7 @@ class TestCompleteORMWorkflows:
         with repo.transaction() as tx:
             # Query large result sets
             all_people = tx.query(Person).find()
-            assert len(all_people) == 100
+            assert len(all_people) == BULK_PEOPLE_COUNT, f"Expected {BULK_PEOPLE_COUNT} people, got {len(all_people)}"
             
             # Filtered queries
             young_people = tx.query(Person).where(Person.age < 30).find()
@@ -346,6 +354,6 @@ class TestCompleteORMWorkflows:
         performance_timer.stop()
         
         # Verify bulk operations complete in reasonable time
-        assert performance_timer.duration < 15.0, f"Bulk operations took {performance_timer.duration:.2f}s"
+        assert performance_timer.duration < MAX_BULK_TIME, f"Bulk operations took {performance_timer.duration:.2f}s, expected <{MAX_BULK_TIME}s"
         
         print(f"Bulk operations completed in {performance_timer.duration:.2f} seconds")

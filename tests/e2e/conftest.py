@@ -136,7 +136,8 @@ def clean_db_with_constraints(neo4j_driver):
     # Clear the database completely
     with neo4j_driver.session() as session:
         session.run("MATCH (n) DETACH DELETE n")
-        # Drop existing constraints and indexes (Neo4j 4.4 syntax)
+        # Drop existing constraints and indexes (Neo4j 4.4+ syntax)
+        # Note: SHOW CONSTRAINTS/INDEXES requires Neo4j 4.0+
         try:
             constraints = session.run("SHOW CONSTRAINTS").data()
             for constraint in constraints:

@@ -2,6 +2,7 @@
 
 These models represent realistic business entities for comprehensive workflow testing.
 """
+from typing import Optional, List
 from neoalchemy.orm.models import Node, Relationship
 from neoalchemy.orm.fields import PrimaryField, UniqueField, IndexedField
 
@@ -12,10 +13,10 @@ class Person(Node):
     name: IndexedField[str]
     age: int
     active: bool = True
-    tags: list[str] = []
+    tags: List[str] = []
     score: float = 0.0
-    department: str = ""
-    hire_date: str = ""
+    department: Optional[str] = None
+    hire_date: Optional[str] = None
     
     
 class Company(Node):
@@ -25,7 +26,7 @@ class Company(Node):
     industry: IndexedField[str] = ""
     employee_count: int = 0
     revenue: float = 0.0
-    headquarters: str = ""
+    headquarters: Optional[str] = None
 
 
 class Product(Node):
@@ -34,9 +35,9 @@ class Product(Node):
     name: IndexedField[str]
     price: IndexedField[float]
     category: IndexedField[str] = ""
-    description: str = ""
+    description: Optional[str] = None
     in_stock: bool = True
-    manufacturer: str = ""
+    manufacturer: Optional[str] = None
 
 
 class Project(Node):
@@ -44,8 +45,8 @@ class Project(Node):
     code: PrimaryField[str]
     name: IndexedField[str]
     status: IndexedField[str] = "active"
-    start_date: str = ""
-    end_date: str = ""
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     budget: float = 0.0
     priority: int = 1
 
@@ -55,7 +56,7 @@ class Department(Node):
     name: PrimaryField[str]
     budget: float = 0.0
     head_count: int = 0
-    location: str = ""
+    location: Optional[str] = None
 
 
 # Relationships
@@ -73,8 +74,8 @@ class WorksOn(Relationship):
     """Project assignment relationship."""
     role: str
     allocation: float = 1.0  # percentage of time
-    start_date: str = ""
-    end_date: str = ""
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 
 class Uses(Relationship):
@@ -82,13 +83,13 @@ class Uses(Relationship):
     since: int
     frequency: str = "daily"
     license_type: str = "standard"
-    last_used: str = ""
+    last_used: Optional[str] = None
 
 
 class PartOf(Relationship):
     """Hierarchical relationship for departments."""
     since: int
-    responsibility: str = ""
+    responsibility: Optional[str] = None
 
 
 class ManufacturedBy(Relationship):
