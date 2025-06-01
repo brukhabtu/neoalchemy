@@ -19,8 +19,11 @@ Both components share the same Neo4j database and work together to provide both 
 ## Testing & Development
 - Install dev dependencies: `uv pip install -e ".[dev]"`
 - Run all tests: `python -m pytest`
-- Run unit tests only: `python -m pytest tests/unit/`
-- Run integration tests only: `python -m pytest tests/integration/`
+- Run unit tests only: `python -m pytest -m unit`
+- Run integration tests only: `python -m pytest -m integration`
+- Run unit+integration tests: `python -m pytest -m "unit or integration"`
+- Run e2e tests only: `python -m pytest -m e2e`
+- Run e2e tests with auto-start: `python -m pytest -m e2e --neo4j-auto-start`
 - Single test: `python -m pytest tests/unit/test_models.py::TestNodeModel::test_basic_node -v`
 - Type checking: `mypy neoalchemy/`
 - Linting: `ruff check neoalchemy/`
@@ -42,9 +45,10 @@ The repository has dual-component testing requirements:
 
 ### **Test Organization**
 - Unit tests: Complete isolation with aggressive mocking (tests/unit/)
-- Integration tests: Component cooperation with real database (tests/integration/)
-- Test markers: `@pytest.mark.unit`, `@pytest.mark.integration`
-- Default pytest run excludes e2e tests (currently not implemented)
+- Integration tests: Component cooperation with mocked database (tests/integration/)
+- E2E tests: Complete workflows with real database (tests/e2e/)
+- Test markers: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e`
+- Default pytest run excludes e2e tests (require database setup)
 
 ### **Database Environment**
 Tests leverage the existing devcontainer setup:
@@ -60,10 +64,35 @@ Tests leverage the existing devcontainer setup:
 - Environment variables: `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
 
 ## Test Environment
-- Integration tests require running Neo4j database
+- E2E tests require running Neo4j database
 - Configure via environment variables: `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
 - Unit tests run without database (fast, isolated component testing)
-- Integration tests validate full integration with Neo4j
+- Integration tests use mocked database (component interaction testing)
+- E2E tests validate complete workflows with real Neo4j database
+
+## Running E2E Tests
+**Manual setup (recommended for development):**
+```bash
+# Start Neo4j service manually
+docker-compose -f .devcontainer/docker-compose.yml up -d neo4j
+
+# Run E2E tests
+python -m pytest tests/e2e/ -k ""
+
+# Stop Neo4j service
+docker-compose -f .devcontainer/docker-compose.yml down
+```
+
+**Auto-start (convenient for quick testing):**
+```bash
+# Automatically start/stop Neo4j service
+# Includes intelligent waiting with exponential backoff
+python -m pytest tests/e2e/ --neo4j-auto-start -k ""
+```
+
+**CI environment:**
+- Tests run automatically with GitHub Actions service containers
+- No manual setup required
 
 ## Code Style
 - **PEP 8** compliant with 100-character line length

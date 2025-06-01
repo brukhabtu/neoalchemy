@@ -209,7 +209,6 @@ jobs:
     name: End-to-End Tests
     runs-on: ubuntu-latest
     needs: build-image
-    if: false  # Temporarily disabled - E2E tests need to be rewritten
     
     services:
       neo4j:
@@ -270,7 +269,7 @@ jobs:
           -e NEO4J_USER=$NEO4J_USER \
           -e NEO4J_PASSWORD=$NEO4J_PASSWORD \
           ${{ env.IMAGE_NAME }} \
-          python -m pytest tests/e2e/ -v --tb=short
+          python -m pytest -m e2e -v --tb=short
 
   # Code quality checks (runs in parallel with tests)
   code-quality:
