@@ -20,30 +20,31 @@ Both components share the same Neo4j database and work together to provide both 
 - Install dev dependencies: `uv pip install -e ".[dev]"`
 - Run all tests: `python -m pytest`
 - Run unit tests only: `python -m pytest tests/unit/`
-- Run e2e tests only: `python -m pytest tests/e2e/`
+- Run integration tests only: `python -m pytest tests/integration/`
 - Single test: `python -m pytest tests/unit/test_models.py::TestNodeModel::test_basic_node -v`
 - Type checking: `mypy neoalchemy/`
 - Linting: `ruff check neoalchemy/`
 - Formatting: `ruff format neoalchemy/`
 - Test coverage: `python -m pytest --cov=neoalchemy tests/`
+- Clear database: `python clear_database.py`
 - Use uv to run python commands
 
 ## Testing Strategy
 The repository has dual-component testing requirements:
 
 ### **NeoAlchemy ORM Testing**
-- **Unit tests**: Core expressions, cypher compilation, model logic (no database)
-- **Integration tests**: Repository operations, transactions, constraints (with database)
-- **E2E tests**: Complete ORM workflows and complex graph operations
+- **Unit tests**: Core expressions, cypher compilation, model logic (no database, heavily mocked)
+- **Integration tests**: Repository operations, transactions, constraints (real database)
 
 ### **MCP Server Testing**
 - **Unit tests**: MCP tool logic, request handling (mocked NeoAlchemy)
 - **Integration tests**: MCP server + Neo4j operations (real database)
-- **E2E tests**: Full MCP workflows including AI agent interactions
 
-### **Cross-Component Testing**
-- Integration tests verifying MCP server correctly uses NeoAlchemy ORM
-- E2E tests for complete workflows (AI agent → MCP → NeoAlchemy → Neo4j)
+### **Test Organization**
+- Unit tests: Complete isolation with aggressive mocking (tests/unit/)
+- Integration tests: Component cooperation with real database (tests/integration/)
+- Test markers: `@pytest.mark.unit`, `@pytest.mark.integration`
+- Default pytest run excludes e2e tests (currently not implemented)
 
 ### **Database Environment**
 Tests leverage the existing devcontainer setup:
@@ -52,16 +53,17 @@ Tests leverage the existing devcontainer setup:
 - Same database instance serves both components
 - Test isolation through database cleanup between runs
 
-## CLI Tools
-- Show database info: `neoalchemy info [--uri URI --user USER]`
-- Clear database: `neoalchemy clear [--uri URI --user USER]`
+## Database Tools
+- Clear database: `python clear_database.py`
+- Run MCP server: `python graph-mcp/mcp_server.py`
 - Default connection: `bolt://localhost:7687` with user `neo4j`
+- Environment variables: `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
 
 ## Test Environment
-- E2E tests require running Neo4j database
+- Integration tests require running Neo4j database
 - Configure via environment variables: `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
 - Unit tests run without database (fast, isolated component testing)
-- E2E tests validate full integration with Neo4j
+- Integration tests validate full integration with Neo4j
 
 ## Code Style
 - **PEP 8** compliant with 100-character line length
