@@ -324,14 +324,19 @@ class Neo4jTransaction:
             True if the entity was deleted, False otherwise
         """
         node_label = getattr(model.__class__, "__label__", model.__class__.__name__)
-        uid = getattr(model, "id", None)
-
+        
+        # Get the primary key field and value
+        primary_key = model.__class__.get_primary_key()
+        if primary_key is None:
+            raise ValueError(f"Model {model.__class__.__name__} must define a primary key field to be deleted")
+        
+        uid = getattr(model, primary_key, None)
         if uid is None:
-            raise ValueError("Model must have an id attribute to be deleted")
+            raise ValueError(f"Model must have a {primary_key} attribute value to be deleted")
 
         query = f"""
         MATCH (e:{node_label})
-        WHERE e.id = $uid
+        WHERE e.{primary_key} = $uid
         DETACH DELETE e
         RETURN count(e) as deleted
         """

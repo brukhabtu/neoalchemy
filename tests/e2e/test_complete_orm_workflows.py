@@ -98,7 +98,7 @@ class TestCompleteORMWorkflows:
                     name=f"Employee {i:02d}",
                     age=25 + (i * 3),
                     active=True,
-                    tags=["engineer", "python", "ai"] if i < 5 else ["manager", "product"],
+                    tags=["Engineer", "python", "ai"] if i < 5 else ["Manager", "product"],
                     score=85.0 + i,
                     department="Engineering" if i < 7 else "Product"
                 ))

@@ -31,7 +31,7 @@ class Company(Node):
 
 class Product(Node):
     """Product entity for e-commerce and inventory scenarios."""
-    sku: UniqueField[str]
+    sku: PrimaryField[str]  # SKU is naturally the primary identifier for products
     name: IndexedField[str]
     price: IndexedField[float]
     category: IndexedField[str] = ""

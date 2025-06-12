@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
 # Distribution / packaging
 dist/
 build/
@@ -12,6 +13,7 @@ build/
 venv/
 env/
 .env/
+.venv/
 
 # Testing
 .coverage
@@ -20,6 +22,7 @@ htmlcov/
 
 # Type checking
 .mypy_cache/
+.ruff_cache/
 
 # IDE files
 .idea/

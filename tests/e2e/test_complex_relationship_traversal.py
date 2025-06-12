@@ -115,7 +115,7 @@ class TestComplexRelationshipTraversal:
                 email="lead.eng@techsub.com",
                 name="Lead Engineer Mike Chen",
                 age=35,
-                tags=["engineering", "ai", "platform"],
+                tags=["engineering", "ai", "platform", "lead"],
                 score=92.0
             ))
             
@@ -123,7 +123,7 @@ class TestComplexRelationshipTraversal:
                 email="consultant@consultingsub.com",
                 name="Senior Consultant Lisa Brown",
                 age=40,
-                tags=["consulting", "strategy", "transformation"],
+                tags=["consulting", "strategy", "transformation", "lead"],
                 score=90.0
             ))
             
@@ -198,7 +198,7 @@ class TestComplexRelationshipTraversal:
             
             # Query 3: Find all executives in the corporate hierarchy
             executives = tx.query(Person).where(
-                "executive" in Person.tags | "leadership" in Person.tags
+                ("executive" in Person.tags) | ("leadership" in Person.tags)
             ).find()
             assert len(executives) >= 2
             
@@ -592,7 +592,7 @@ class TestComplexRelationshipTraversal:
             
             # Find current enterprise employees
             current_employees = tx.query(Person).where(
-                "enterprise-hire" in Person.tags | "mature" in Person.tags
+                ("enterprise-hire" in Person.tags) | ("mature" in Person.tags)
             ).find()
             assert len(current_employees) >= 10
             

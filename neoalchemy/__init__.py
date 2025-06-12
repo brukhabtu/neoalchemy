@@ -45,6 +45,8 @@ from neoalchemy.orm.tracking import SOURCED_FROM, Source, SourceScheme
 
 # No automatic initialization - users need to call initialize() explicitly
 
+__version__ = "0.1.0"
+
 __all__ = [
     # Base models
     "Neo4jModel",

@@ -65,24 +65,21 @@ class QueryBuilder(Generic[M]):
         """
         from neoalchemy.core.state import expression_state
 
-        # Special case for in-operator expressions (True with a captured expression)
-        if len(conditions) == 1 and conditions[0] is True:
-            # We need to check if there's a captured expression from an in-operator
-            if expression_state.last_expr is not None:
-                # Use the stored expression and clear it
-                expr = expression_state.last_expr
-                self.conditions.append(expr)
-                expression_state.last_expr = None
-                return self
-            # If we get True but there's no stored expression, treat it as a condition
-            self.conditions.append(OperatorExpr("active", "=", True))
-            return self
-
         # Handle regular expressions
         for condition in conditions:
             if isinstance(condition, Expr):
                 # Expression object
                 self.conditions.append(condition)
+            elif condition is True:
+                # Special case for in-operator expressions (True with a captured expression)
+                if expression_state.last_expr is not None:
+                    # Use the stored expression and clear it
+                    expr = expression_state.last_expr
+                    self.conditions.append(expr)
+                    expression_state.last_expr = None
+                else:
+                    # If we get True but there's no stored expression, treat it as a condition
+                    self.conditions.append(OperatorExpr("active", "=", True))
             elif isinstance(condition, tuple) and len(condition) == 3:
                 # Legacy tuple support (field, operator, value)
                 field, operator, value = condition
