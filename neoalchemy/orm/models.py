@@ -158,6 +158,34 @@ class Neo4jModel(BaseModel, metaclass=Neo4jModelMeta):
         self.updated_at = DateTime.from_native(datetime.now())
         return self
 
+    @model_validator(mode="before")
+    @classmethod
+    def validate_field_types(cls, data):
+        """Validate PrimaryField and IndexedField values."""
+        if isinstance(data, dict):
+            for field_name, field_info in cls.model_fields.items():
+                if field_name in data:
+                    value = data[field_name]
+                    json_schema_extra = getattr(field_info, 'json_schema_extra', None) or {}
+                    
+                    # Check if this is a primary field or indexed field
+                    is_primary = json_schema_extra.get('primary', False)
+                    is_indexed = json_schema_extra.get('index', False)
+                    
+                    # Validate primary fields - cannot be empty
+                    if is_primary and isinstance(value, str):
+                        if not value.strip():
+                            raise ValueError(f"{field_name} cannot be empty or whitespace")
+                        data[field_name] = value.strip()
+                    
+                    # Validate indexed fields - cannot be empty if not None
+                    elif is_indexed and isinstance(value, str) and value is not None:
+                        if not value.strip():
+                            raise ValueError(f"{field_name} cannot be empty or whitespace")
+                        data[field_name] = value.strip()
+        
+        return data
+
     @classmethod
     def field(cls, name: str) -> FieldExpr:
         """Get a field expression for the given field name.

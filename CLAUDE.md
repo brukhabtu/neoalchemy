@@ -2,170 +2,157 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# NeoAlchemy Development Guidelines
+## About NeoAlchemy
 
-## Project Overview
-This repository contains two main components:
-
-1. **NeoAlchemy ORM** (`neoalchemy/`) - A SQLAlchemy-inspired ORM for Neo4j that provides a Pythonic API for working with Neo4j graph databases using Pydantic models with a transaction-based interface.
-
-2. **MCP Server** (`graph-mcp/`) - A Model Context Protocol server that provides AI agents (like Claude) with structured access to Neo4j operations through the NeoAlchemy ORM.
-
-Both components share the same Neo4j database and work together to provide both programmatic access (via NeoAlchemy) and AI agent access (via MCP) to graph data.
-
-## Project Infrastructure Memories
-- The dockerfile will always be in the devcontainer repo - lets keep it there
-
-## Testing & Development
-- Install dev dependencies: `uv pip install -e ".[dev]"`
-- Run all tests: `python -m pytest`
-- Run unit tests only: `python -m pytest -m unit`
-- Run integration tests only: `python -m pytest -m integration`
-- Run unit+integration tests: `python -m pytest -m "unit or integration"`
-- Run e2e tests only: `python -m pytest -m e2e`
-- Run e2e tests with auto-start: `python -m pytest -m e2e --neo4j-auto-start`
-- Single test: `python -m pytest tests/unit/test_models.py::TestNodeModel::test_basic_node -v`
-- Type checking: `mypy neoalchemy/`
-- Linting: `ruff check neoalchemy/`
-- Formatting: `ruff format neoalchemy/`
-- Test coverage: `python -m pytest --cov=neoalchemy tests/`
-- Clear database: `python clear_database.py`
-- Use uv to run python commands
-
-## Testing Strategy
-The repository has dual-component testing requirements:
-
-### **NeoAlchemy ORM Testing**
-- **Unit tests**: Core expressions, cypher compilation, model logic (no database, heavily mocked)
-- **Integration tests**: Repository operations, transactions, constraints (real database)
-
-### **MCP Server Testing**
-- **Unit tests**: MCP tool logic, request handling (mocked NeoAlchemy)
-- **Integration tests**: MCP server + Neo4j operations (real database)
-
-### **Test Organization**
-- Unit tests: Complete isolation with aggressive mocking (tests/unit/)
-- Integration tests: Component cooperation with mocked database (tests/integration/)
-- E2E tests: Complete workflows with real database (tests/e2e/)
-- Test markers: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e`
-- Default pytest run excludes e2e tests (require database setup)
-
-### **Database Environment**
-Tests leverage the existing devcontainer setup:
-- Neo4j 4.4 container with proper configuration
-- Environment variables: `NEO4J_URI=bolt://neo4j:7687`
-- Same database instance serves both components
-- Test isolation through database cleanup between runs
-
-## Database Tools
-- Clear database: `python clear_database.py`
-- Run MCP server: `python graph-mcp/mcp_server.py`
-- Default connection: `bolt://localhost:7687` with user `neo4j`
-- Environment variables: `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
-
-## Test Environment
-- E2E tests require running Neo4j database
-- Configure via environment variables: `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
-- Unit tests run without database (fast, isolated component testing)
-- Integration tests use mocked database (component interaction testing)
-- E2E tests validate complete workflows with real Neo4j database
-
-## Running E2E Tests
-**Manual setup (recommended for development):**
-```bash
-# Start Neo4j service manually
-docker-compose -f .devcontainer/docker-compose.yml up -d neo4j
-
-# Run E2E tests
-python -m pytest tests/e2e/ -k ""
-
-# Stop Neo4j service
-docker-compose -f .devcontainer/docker-compose.yml down
-```
-
-**Auto-start (convenient for quick testing):**
-```bash
-# Automatically start/stop Neo4j service
-# Includes intelligent waiting with exponential backoff
-python -m pytest tests/e2e/ --neo4j-auto-start -k ""
-```
-
-**CI environment:**
-- Tests run automatically with GitHub Actions service containers
-- No manual setup required
-
-## Code Style
-- **PEP 8** compliant with 100-character line length
-- **Imports**: Group by standard library, third-party, internal; alphabetized within groups
-- **Typing**: Full type annotations required for all functions and methods
-- **Strings**: Double quotes preferred (`"text"` not `'text'`)
-- **Docstrings**: Google style with Args, Returns, Raises sections
-- **Naming**: 
-  - Classes: `PascalCase`, Functions/variables: `snake_case`, Constants: `UPPER_SNAKE_CASE`
-  - Private attributes: Leading underscore `_private`
-  - Class variables: Double underscores for internal attributes `__registry__`
-
-## Error Handling
-- Catch specific exceptions (not broad `except:`)
-- Include meaningful error messages
-- Preserve original exceptions with `from` when re-raising
-
-## Neo4j Integration
-- Tests require a running Neo4j instance (default: bolt://localhost:7687)
-- Always use transactions for database operations
+NeoAlchemy is a SQLAlchemy-inspired Python ORM for Neo4j graph databases. It provides a high-level, Pythonic API for working with Neo4j using Pydantic models, type-safe query building, and transaction-based database operations.
 
 ## Architecture Overview
-NeoAlchemy follows a layered architecture inspired by SQLAlchemy:
 
-### Core Layer (`neoalchemy/core/`)
-- **Expressions** (`expressions/`): Field expressions, operators, and logical operations for query building
-- **Cypher** (`cypher/`): Modular Cypher query compiler with elements (patterns, clauses) and query assembly
-- **Field Registration** (`field_registration.py`): Dynamic field expression registration system using venusian
-- **State Management** (`state.py`): Query compilation state and parameter tracking
+**Layered Architecture (Bottom-up):**
+- **Database Layer**: Neo4j Python driver
+- **Core Layer**: Expression system, Cypher compiler, field registration (`neoalchemy/core/`)
+- **ORM Layer**: Models, query building, repository pattern (`neoalchemy/orm/`)
+- **MCP Layer**: FastMCP server for AI integration (`graph-mcp/`)
+
+**Key Patterns:**
+- **Expression System**: Uses operator overloading for Pythonic queries (`Person.age > 25`)
+- **Metaclass Field Access**: `Person.name` returns `FieldExpr` for queries vs field values for instances
+- **Transaction Repository**: All database operations happen within transaction contexts
+- **Registry Pattern**: Automatic model registration for MCP tools via `Node.__registry__`
+
+## Development Commands
+
+### Package Management (UV)
+```bash
+# Add dependencies
+uv add package-name
+uv add --dev dev-package-name
+
+# Sync and update
+uv sync
+```
+
+### Testing (4-tier Strategy)
+```bash
+# Default: Unit + Integration tests (fast)
+uv run pytest
+
+# Individual test levels
+uv run pytest tests/unit/          # Unit tests only (mocked dependencies)
+uv run pytest tests/integration/   # Integration tests (real components, mocked DB)
+uv run pytest tests/e2e/          # E2E tests (requires running Neo4j)
+
+# Using markers
+uv run pytest -m "not e2e"        # Exclude E2E tests (default)
+uv run pytest -m e2e             # E2E tests only
+
+# Single test
+uv run pytest tests/unit/core/test_state.py::TestState::test_method
+```
+
+### Code Quality
+```bash
+# Linting and formatting
+uv run ruff check .               # Check linting
+uv run ruff format .              # Format code
+uv run ruff check . --fix         # Auto-fix issues
+
+# Type checking
+uv run mypy .                     # Type check entire codebase
+```
+
+### MCP Server
+```bash
+# Start MCP server for AI integration
+cd graph-mcp && uv run python mcp_server.py
+```
+
+## Core Components
+
+### Expression System (`neoalchemy/core/expressions/`)
+- **Base expressions** (`base.py`): Foundation for all query expressions
+- **Field expressions** (`fields.py`): Property access and operations
+- **Operators** (`operators.py`): Comparison and arithmetic operations  
+- **Logical operations** (`logical.py`): AND, OR, NOT logic
+- **Functions** (`functions.py`): Neo4j function calls
+- **Adapter** (`adapter.py`): Central configuration for expression compilation
+
+### Cypher Compiler (`neoalchemy/core/cypher/`)
+- **Elements** (`elements/`): Modular query components (patterns, clauses)
+- **Keywords** (`core/keywords.py`): Cypher keyword constants
+- **Query** (`query.py`): Top-level query compilation
 
 ### ORM Layer (`neoalchemy/orm/`)
-- **Models** (`models.py`): Base classes `Neo4jModel`, `Node`, `Relationship` with Pydantic integration
-- **Repository** (`repository.py`): Transaction-based database interface `Neo4jRepository` and `Neo4jTransaction`
-- **Query Builder** (`query.py`): High-level query building API `QueryBuilder` 
-- **Fields** (`fields.py`): Custom field types `PrimaryField`, `UniqueField`, `IndexedField`
-- **Constraints** (`constraints.py`): Database constraint management
+- **Models** (`models.py`): Base `Node` and `Relationship` classes with Pydantic
+- **Fields** (`fields.py`): `PrimaryField`, `UniqueField`, `IndexedField` types
+- **Query building** (`query.py`): High-level query API with Python syntax
+- **Repository** (`repository.py`): Transaction-based database interface
+- **Source tracking** (`tracking/`): Data lineage and MCP integration
 
-### Key Patterns
-- **Transaction-first**: All operations require explicit transaction context
-- **Expression system**: Python operators automatically compile to Cypher via registered field expressions
-- **Type safety**: Comprehensive type annotations and Pydantic model validation
-- **Modular compilation**: Cypher queries built from composable elements and clauses
+## Testing Conventions
 
-## Initialization Requirements
-- **Critical**: Always call `initialize()` from `neoalchemy` before using models to register field expressions
-- This populates the dynamic expression system that enables `Model.field` syntax
+### Test Structure
+- **Unit tests**: Mock all external dependencies, focus on business logic
+- **Integration tests**: Test component boundaries with real NeoAlchemy objects
+- **E2E tests**: Full workflows against real Neo4j database
 
-## Component Architecture
+### Key Test Patterns
+- Use `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e` markers
+- E2E tests excluded by default (require `-m e2e` or explicit inclusion)
+- Shared models in `tests/e2e/shared_models.py` and `tests/integration/shared_models.py`
+- Database setup via `conftest.py` fixtures at each level
 
-### **NeoAlchemy ORM** (`neoalchemy/`)
-Core Layer (`neoalchemy/core/`):
-- **Expressions** (`expressions/`): Field expressions, operators, and logical operations for query building
-- **Cypher** (`cypher/`): Modular Cypher query compiler with elements (patterns, clauses) and query assembly
-- **Field Registration** (`field_registration.py`): Dynamic field expression registration system using venusian
-- **State Management** (`state.py`): Query compilation state and parameter tracking
+## Development Workflow
 
-ORM Layer (`neoalchemy/orm/`):
-- **Models** (`models.py`): Base classes `Neo4jModel`, `Node`, `Relationship` with Pydantic integration
-- **Repository** (`repository.py`): Transaction-based database interface `Neo4jRepository` and `Neo4jTransaction`
-- **Query Builder** (`query.py`): High-level query building API `QueryBuilder` 
-- **Fields** (`fields.py`): Custom field types `PrimaryField`, `UniqueField`, `IndexedField`
-- **Constraints** (`constraints.py`): Database constraint management
+### Field Expression Registration
+Fields automatically register with the expression system via `neoalchemy/core/field_registration.py`. New field types should follow this pattern.
 
-### **MCP Server** (`graph-mcp/`)
-- Model Context Protocol server implementation
-- Provides granular, type-safe MCP tools for Neo4j operations
-- Tools include entity management, source management, relationship management, and queries
-- Uses FastMCP framework with proper type validation and error handling
-- Built on top of NeoAlchemy ORM for all database operations
+### Query Building Pattern
+```python
+# Repository transaction pattern
+with repo.transaction() as tx:
+    query = tx.query(Model).where(condition)
+    results = query.all()
+    # Auto-commit on context exit
+```
 
-## Best Practices
-- Follow existing patterns in the codebase
-- Use f-strings for string formatting
-- Avoid wildcard imports
-- Use Python's latest language features wherever appropriate
-- Use optional parameters with default values instead of multiple methods
+### Operator Overloading for Queries
+- Comparison: `>`, `>=`, `<`, `<=`, `==`, `!=`
+- Logical: `&` (AND), `|` (OR), `~` (NOT)
+- Container: `in_()` method for membership
+- String: `.startswith()`, `.endswith()`, `.contains()`
+
+### MCP Integration
+The `graph-mcp/` module provides 11 MCP tools for AI-driven database operations:
+- Entity CRUD: `create_entity`, `update_entity`, `get_entity`, `delete_entity`
+- Relationships: `create_relationship`
+- Querying: `query_entities`
+- Schema: `get_available_types`, `get_entity_schema`
+- Source Context: `set_data_source_context`, `set_reasoning_context`, `start_analysis_session`, `get_session_info`
+
+**Automatic Source Tracking:**
+- LLMs can specify `source_id` (e.g., "PROJ-123", "confluence-page-456") for automatic source type inference
+- Zero cognitive overhead - source tracking happens automatically behind the scenes
+- Full audit trail maintained with native system IDs
+
+**MCP Best Practices Reference:**
+- [FastMCP Documentation](https://gofastmcp.com/llms-full.txt) - Comprehensive guide for MCP tool design patterns, naming conventions, and implementation best practices
+
+## Configuration
+
+### Ruff (pyproject.toml)
+- Line length: 100 characters
+- Target: Python 3.10+
+- Linting: pycodestyle (E), pyflakes (F), isort (I)
+
+### MyPy
+- Strict configuration with special handling for expression operator overloading
+- Custom type checking for the metaclass-based field access system
+
+## Important Notes
+
+- **No automatic initialization**: Users must call `initialize()` explicitly
+- **Expression compilation**: Centralized via adapter pattern in `expressions/adapter.py`
+- **Pydantic v2**: Modern validation with JSON schema support
+- **Neo4j native types**: Built-in support for temporal and spatial data types
+- **Venusian integration**: Used for advanced registration patterns

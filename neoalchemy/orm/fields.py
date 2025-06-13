@@ -6,7 +6,7 @@ This module provides specialized field types for Neo4j models.
 
 from typing import Annotated, TypeVar
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 T = TypeVar("T")
 

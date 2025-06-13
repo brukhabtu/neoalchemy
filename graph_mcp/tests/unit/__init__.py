@@ -1,0 +1,1 @@
+"""Unit tests for graph-mcp - completely isolated from database."""

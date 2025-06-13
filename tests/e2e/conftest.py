@@ -133,37 +133,16 @@ def _wait_for_neo4j_ready():
 @pytest.fixture
 def clean_db_with_constraints(neo4j_driver):
     """Provide a clean database with constraints and indexes set up."""
-    # Clear the database completely
-    with neo4j_driver.session() as session:
-        session.run("MATCH (n) DETACH DELETE n")
-        # Drop existing constraints and indexes (Neo4j 4.4+ syntax)
-        # Note: SHOW CONSTRAINTS/INDEXES requires Neo4j 4.0+
-        try:
-            constraints = session.run("SHOW CONSTRAINTS").data()
-            for constraint in constraints:
-                constraint_name = constraint.get("name")
-                if constraint_name:
-                    session.run(f"DROP CONSTRAINT {constraint_name}")
-        except Exception:
-            pass  # Constraints might not exist
-        
-        try:
-            indexes = session.run("SHOW INDEXES").data()
-            for index in indexes:
-                index_name = index.get("name")
-                if index_name and not index.get("type", "").startswith("BTREE-"):  # Skip system indexes
-                    session.run(f"DROP INDEX {index_name}")
-        except Exception:
-            pass  # Indexes might not exist
-        
-    # Set up constraints and indexes
-    setup_constraints(neo4j_driver)
+    from neoalchemy.utils.database import setup_test_database
+    
+    # Set up clean database with constraints
+    setup_test_database(neo4j_driver, clear_first=True)
     
     yield neo4j_driver
     
     # Clean up after test
-    with neo4j_driver.session() as session:
-        session.run("MATCH (n) DETACH DELETE n")
+    from neoalchemy.utils.database import clear_database
+    clear_database(neo4j_driver)
 
 
 @pytest.fixture
